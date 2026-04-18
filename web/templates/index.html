@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Servers — Aegixa{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Select a Server</h1>
+  <p class="text-muted">Manage moderation settings for your servers.</p>
+</div>
+<div id="guild-list" class="guild-grid">
+  <div class="spinner"></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function loadGuilds() {
+  const res = await fetch('/api/guilds');
+  const guilds = await res.json();
+  const container = document.getElementById('guild-list');
+  if (!guilds.length) {
+    container.innerHTML = '<p class="text-muted">No accessible servers found. Make sure Aegixa is in your server and you have a config role.</p>';
+    return;
+  }
+  container.innerHTML = guilds.map(g => `
+    <a href="/dashboard/${g.id}" class="guild-card">
+      ${g.icon
+        ? `<img class="guild-icon" src="${g.icon}" alt="${g.name}"/>`
+        : `<div class="guild-icon guild-icon-placeholder">${g.name.charAt(0)}</div>`}
+      <div class="guild-name">${g.name}</div>
+      <div class="guild-members">${g.member_count} members</div>
+    </a>
+  `).join('');
+}
+loadGuilds();
+</script>
+{% endblock %}

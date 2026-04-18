@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Console — Aegixa{% endblock %}
+{% block content %}
+<div class="console-layout">
+  <!-- Sidebar: guild + channel list -->
+  <aside class="console-sidebar">
+    <div class="sidebar-header">
+      <select id="guild-select" class="input" onchange="selectGuild()">
+        <option value="">— Select Server —</option>
+        {% for g in guilds %}
+          <option value="{{ g.id }}">{{ g.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div id="channel-list" class="channel-list"></div>
+    <div class="member-search">
+      <input type="text" id="member-search" class="input input-sm" placeholder="Search members..." oninput="searchMembers()"/>
+      <div id="member-list" class="member-list"></div>
+    </div>
+  </aside>
+
+  <!-- Main: messages -->
+  <main class="console-main">
+    <div id="messages-header" class="messages-header hidden">
+      <span id="channel-name"></span>
+    </div>
+    <div id="messages-container" class="messages-container">
+      <div class="console-placeholder">Select a server and channel to browse messages.</div>
+    </div>
+    <div id="send-area" class="send-area hidden">
+      <textarea id="send-input" class="input send-input" placeholder="Send a message as Aegixa..." rows="2"></textarea>
+      <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+    </div>
+  </main>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/console.js"></script>
+{% endblock %}
