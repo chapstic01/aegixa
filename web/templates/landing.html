@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Aegixa — Discord Security & Moderation Bot</title>
-  <meta name="description" content="Aegixa protects your Discord server with automod, anti-raid, phishing detection, logging, and more. Free tier available."/>
+  <meta name="description" content="Aegixa protects your Discord server with automod, anti-raid, phishing detection, verification gates, logging, and more. Free to add."/>
   <link rel="stylesheet" href="/static/css/style.css"/>
   <link rel="stylesheet" href="/static/css/landing.css"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -29,10 +29,11 @@
   <!-- HERO -->
   <section class="hero">
     <div class="hero-badge">Free to use &nbsp;·&nbsp; Premium available</div>
-    <h1 class="hero-title">The Security Bot<br/>Your Server Deserves</h1>
+    <h1 class="hero-title">Keep Your Server Safe.<br/>Without the Headache.</h1>
     <p class="hero-sub">
-      Aegixa keeps your community safe with automod, anti-raid detection,
-      phishing blocking, 9 log channels, and a full moderation suite — all in one bot.
+      Aegixa is an all-in-one security and moderation bot. Automod, anti-raid,
+      phishing detection, 9 log channels, giveaways, sticky messages, and a full
+      moderation suite — set up in under a minute.
     </p>
     <div class="hero-cta">
       <a class="btn btn-primary btn-xl" href="{{ invite_url }}" target="_blank" rel="noopener">
@@ -49,56 +50,68 @@
     <div class="section-inner">
       <div class="section-header">
         <h2>Everything you need to run a safe server</h2>
-        <p>No setup headaches. Configure once with <code>/setup</code> and Aegixa handles the rest.</p>
+        <p>Configure once with <code>/setup</code> and Aegixa handles the rest.</p>
       </div>
       <div class="feature-grid">
 
         <div class="feature-card">
           <div class="feature-icon">🔨</div>
           <h3>Full Moderation Suite</h3>
-          <p>Ban, kick, mute, temp-ban, warn, purge, role management, slowmode, and more — all as slash commands.</p>
+          <p>Ban, kick, mute, temp-ban, warn, purge, nickname management, slowmode, channel lock — all as slash commands with reason logging.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon">🤖</div>
           <h3>Smart Automod</h3>
-          <p>9 content filters — spam, word, caps, links, invites, images, stickers, external emojis, rate limiting — each with its own punishment.</p>
+          <p>9 content filters — spam, word, caps, links, invites, images, stickers, external emojis, rate limiting. Each filter has its own configurable punishment.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon">🛡️</div>
           <h3>Anti-Raid Protection</h3>
-          <p>Detects join surges and locks down your server automatically. Account-age gating keeps new throwaway accounts out.</p>
+          <p>Automatically detects join surges and locks the server down. Account-age gating blocks throwaway accounts the moment they join.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon">📋</div>
           <h3>9 Log Channels</h3>
-          <p>Separate channels for general, spam, member, edits, deletes, voice, roles, channels, and mod actions. Full audit trail.</p>
+          <p>Independent channels for general, spam, member joins/leaves, message edits, deletes, voice activity, role changes, channel edits, and mod actions.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon">🎭</div>
           <h3>Role Automation</h3>
-          <p>Auto swap or grant roles when members gain or lose other roles. Reaction roles for self-assignment.</p>
+          <p>Auto swap or grant roles when members gain or lose other roles. Reaction roles let members self-assign with a click.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon">🎉</div>
-          <h3>Giveaways & Invites</h3>
-          <p>Built-in giveaway system with rerolls. Invite tracking shows which link each new member used.</p>
+          <h3>Giveaways & Invite Tracking</h3>
+          <p>Run timed giveaways with automatic winner selection and rerolls. Invite tracking logs exactly which invite link each new member used.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📌</div>
+          <h3>Sticky Messages</h3>
+          <p>Pin a message to the bottom of any channel. Aegixa re-posts it automatically every time someone sends a message, keeping it visible.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🖥️</div>
+          <h3>Web Dashboard</h3>
+          <p>Manage your server's settings from a browser. Log in with Discord, pick your server, and configure everything without touching a command.</p>
         </div>
 
         <div class="feature-card feature-card--premium">
           <div class="feature-icon">🎣</div>
           <h3>Phishing Detection <span class="badge-premium">Premium</span></h3>
-          <p>Scans every message for known phishing domains, scam links, and malicious patterns. Deleted before members can click.</p>
+          <p>Scans every message for known phishing domains, scam links, and malicious patterns. Deleted before your members can even click them.</p>
         </div>
 
         <div class="feature-card feature-card--premium">
           <div class="feature-icon">✅</div>
           <h3>Verification Gate <span class="badge-premium">Premium</span></h3>
-          <p>Hold new members in a locked channel until they click Verify. Kills bot accounts and raiders before they can do damage.</p>
+          <p>Hold new members in a locked channel until they click Verify. Stops bot accounts and raiders before they can reach your community.</p>
         </div>
 
       </div>
@@ -119,13 +132,13 @@
           <div class="pricing-price">£0 <span>/forever</span></div>
           <ul class="pricing-list">
             <li>✔ Full moderation suite</li>
-            <li>✔ 8 automod filters</li>
+            <li>✔ 9 automod filters</li>
             <li>✔ Anti-raid auto-detection</li>
             <li>✔ 9 independent log channels</li>
             <li>✔ Role automation &amp; reaction roles</li>
             <li>✔ Giveaways &amp; invite tracking</li>
             <li>✔ Sticky messages</li>
-            <li>✔ Web dashboard</li>
+            <li>✔ Web dashboard &amp; console</li>
           </ul>
           <a class="btn btn-ghost btn-lg" href="{{ invite_url }}" target="_blank" rel="noopener">Add to Discord</a>
         </div>
@@ -151,14 +164,14 @@
 
   <!-- CTA STRIP -->
   <section class="cta-strip">
-    <h2>Ready to secure your server?</h2>
-    <p>Takes 30 seconds to add. Use <code>/setup staff</code> and <code>/setup logs</code> to get started.</p>
+    <h2>Add it in 30 seconds. Free forever.</h2>
+    <p>Run <code>/setup staff</code> and <code>/setup logs</code> and your server is protected. No credit card, no trial period.</p>
     <a class="btn btn-primary btn-xl" href="{{ invite_url }}" target="_blank" rel="noopener">Add Aegixa Free</a>
   </section>
 
   <!-- FOOTER -->
   <footer class="land-footer">
-    <span>© 2025 Aegixa</span>
+    <span>© 2026 Aegixa</span>
     <div class="footer-links">
       <a href="{{ support_server }}" target="_blank" rel="noopener">Support Server</a>
       <a href="{{ premium_url }}" target="_blank" rel="noopener">Premium</a>
