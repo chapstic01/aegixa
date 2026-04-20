@@ -13,6 +13,31 @@ import logging
 log = logging.getLogger(__name__)
 
 
+def _build_welcome_embed(client: discord.Client) -> discord.Embed:
+    from config import PREMIUM_URL, SUPPORT_SERVER
+    import os
+    base_url = os.getenv("BASE_URL", "").rstrip("/")
+    website_line = f"[Website]({base_url})  |  " if base_url else ""
+    embed = discord.Embed(
+        title="Thanks for adding Aegixa!",
+        description=(
+            "Aegixa is a full-featured security and moderation bot.\n\n"
+            "**Get started:**\n"
+            "• `/setup staff` — set your staff role\n"
+            "• `/setup logs` — configure log channels\n"
+            "• `/setup update` — configure anti-raid thresholds\n"
+            "• `/help` — browse all commands\n"
+            "• `/website` — links to the dashboard and website\n\n"
+            "**Automod is on by default.** Use `/filters list` to review.\n\n"
+            f"{website_line}[Get Premium]({PREMIUM_URL})  |  [Support]({SUPPORT_SERVER})"
+        ),
+        color=0x5865F2,
+    )
+    embed.set_thumbnail(url=client.user.display_avatar.url)
+    embed.set_footer(text="Use /about for more info")
+    return embed
+
+
 class SayModal(discord.ui.Modal, title="Send Message"):
     content = discord.ui.TextInput(
         label="Message Content",
@@ -236,28 +261,28 @@ class MessageManagement(commands.Cog):
     @app_commands.describe(channel="Channel to send to (defaults to current)")
     @is_staff()
     async def welcome(self, interaction: discord.Interaction, channel: discord.TextChannel = None):
-        from config import PREMIUM_URL, SUPPORT_SERVER
         target = channel or interaction.channel
-        embed = discord.Embed(
-            title="Thanks for adding Aegixa!",
-            description=(
-                "Aegixa is a full-featured security and moderation bot.\n\n"
-                "**Get started:**\n"
-                "• `/setup staff` — set your staff role\n"
-                "• `/setup logs` — configure log channels\n"
-                "• `/setup update` — configure anti-raid thresholds\n"
-                "• `/help` — browse all commands\n\n"
-                "**Automod is on by default.** Use `/filters list` to review.\n\n"
-                f"[Get Premium]({PREMIUM_URL})  |  [Support]({SUPPORT_SERVER})"
-            ),
-            color=0x5865F2,
-        )
-        embed.set_thumbnail(url=interaction.client.user.display_avatar.url)
-        embed.set_footer(text="Use /about for more info")
+        embed = _build_welcome_embed(interaction.client)
         await target.send(embed=embed)
         await interaction.response.send_message(
             embed=success_embed(f"Welcome message sent to {target.mention}."), ephemeral=True
         )
+
+    @app_commands.command(name="website", description="Show links to the Aegixa website and dashboard")
+    async def website(self, interaction: discord.Interaction):
+        from config import PREMIUM_URL, SUPPORT_SERVER
+        import os
+        base_url = os.getenv("BASE_URL", "").rstrip("/")
+        embed = discord.Embed(
+            title="Aegixa — Links",
+            color=0x5865F2,
+        )
+        if base_url:
+            embed.add_field(name="🌐 Website", value=f"[aegixa-production.up.railway.app]({base_url})", inline=False)
+            embed.add_field(name="🖥️ Dashboard", value=f"[Manage your server]({base_url}/servers)", inline=False)
+        embed.add_field(name="⭐ Premium", value=f"[Get Premium]({PREMIUM_URL})", inline=True)
+        embed.add_field(name="💬 Support", value=f"[Join our server]({SUPPORT_SERVER})", inline=True)
+        await interaction.response.send_message(embed=embed)
 
 
 async def setup(bot: commands.Bot):

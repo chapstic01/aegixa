@@ -128,23 +128,8 @@ class Aegixa(commands.Bot):
         await db.ensure_guild(guild.id)
         log.info("Joined guild: %s (%s)", guild.name, guild.id)
 
-        from config import PREMIUM_URL, SUPPORT_SERVER
-        embed = discord.Embed(
-            title="Thanks for adding Aegixa!",
-            description=(
-                "Aegixa is a full-featured security and moderation bot.\n\n"
-                "**Get started:**\n"
-                "• `/setup staff` — set your staff role\n"
-                "• `/setup logs` — configure log channels\n"
-                "• `/setup update` — configure anti-raid thresholds\n"
-                "• `/help` — browse all commands\n\n"
-                "**Automod is on by default.** Use `/filters list` to review.\n\n"
-                f"[Get Premium]({PREMIUM_URL})  |  [Support]({SUPPORT_SERVER})"
-            ),
-            color=0x5865F2,
-        )
-        embed.set_thumbnail(url=self.user.display_avatar.url)
-        embed.set_footer(text="Use /about for more info")
+        from cogs.message_management import _build_welcome_embed
+        embed = _build_welcome_embed(self)
         channel = next(
             (c for c in guild.text_channels if c.permissions_for(guild.me).send_messages),
             None,
