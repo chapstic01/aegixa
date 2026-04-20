@@ -8,6 +8,7 @@ from web.auth import get_oauth_url, exchange_code, fetch_user
 from web.routes.dashboard import dashboard
 from web.routes.console import console_bp
 from web.routes.api import api
+from web.routes.webhooks import webhooks_bp
 
 
 def create_app(bot) -> Flask:
@@ -21,6 +22,7 @@ def create_app(bot) -> Flask:
     app.register_blueprint(dashboard)
     app.register_blueprint(console_bp)
     app.register_blueprint(api)
+    app.register_blueprint(webhooks_bp)
 
     # ---------------------------------------------------------------------------
     # Auth routes
