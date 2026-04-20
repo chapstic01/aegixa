@@ -281,6 +281,64 @@ class Admin(commands.Cog):
         )
         log.info("Owner granted %d days premium to guild %s (%s)", days, name, target_id)
 
+    @app_commands.command(name="update", description="Send a bot update message to all server owners or their update channel (owner only)")
+    @app_commands.describe(message="The update message to send")
+    async def update(self, interaction: discord.Interaction, message: str):
+        if interaction.user.id != OWNER_ID:
+            return await interaction.response.send_message(
+                embed=error_embed("This command is restricted to the bot owner."), ephemeral=True
+            )
+
+        await interaction.response.defer(ephemeral=True)
+
+        sent = 0
+        failed = 0
+        channel_posts = 0
+
+        embed = discord.Embed(
+            title="📢 Aegixa Update",
+            description=message,
+            color=0x5865F2,
+            timestamp=discord.utils.utcnow(),
+        )
+        embed.set_footer(text="Aegixa Bot Update")
+
+        for guild in self.bot.guilds:
+            row = await db.get_guild(guild.id)
+            update_channel_id = row.get("update_channel_id") if row else None
+
+            if update_channel_id:
+                channel = guild.get_channel(update_channel_id)
+                if channel:
+                    try:
+                        await channel.send(embed=embed)
+                        channel_posts += 1
+                        continue
+                    except discord.HTTPException:
+                        pass
+
+            # Fall back to DMing the guild owner
+            try:
+                owner = await self.bot.fetch_user(guild.owner_id)
+                owner_embed = discord.Embed(
+                    title="📢 Aegixa Update",
+                    description=message,
+                    color=0x5865F2,
+                    timestamp=discord.utils.utcnow(),
+                )
+                owner_embed.set_footer(text=f"Sent to you as owner of {guild.name}")
+                await owner.send(embed=owner_embed)
+                sent += 1
+            except (discord.HTTPException, discord.Forbidden):
+                failed += 1
+
+        summary = f"**Update sent.**\n• Posted to update channels: **{channel_posts}**\n• DMed server owners: **{sent}**"
+        if failed:
+            summary += f"\n• Failed (DMs closed): **{failed}**"
+
+        await interaction.followup.send(embed=success_embed(summary), ephemeral=True)
+        log.info("Owner sent update to %d channels, %d owner DMs (%d failed)", channel_posts, sent, failed)
+
     @app_commands.command(name="genkey", description="Generate a premium license key (owner only)")
     @app_commands.describe(days="Duration in days", uses="Max redemptions (default 1)")
     @app_commands.choices(tier=[

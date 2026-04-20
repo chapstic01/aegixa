@@ -111,6 +111,7 @@ class SetupGroup(app_commands.Group):
         app_commands.Choice(name="excludechannel", value="excludechannel"),
         app_commands.Choice(name="announcement_channel", value="announcement_channel"),
         app_commands.Choice(name="announcement_role", value="announcement_role"),
+        app_commands.Choice(name="update_channel", value="update_channel"),
     ])
     @app_commands.choices(action=[
         app_commands.Choice(name="add", value="add"),
@@ -198,6 +199,16 @@ class SetupGroup(app_commands.Group):
                 await interaction.response.send_message(embed=success_embed(f"{role.mention} will be pinged on announcements."), ephemeral=True)
             else:
                 await interaction.response.send_message(embed=error_embed("Provide a role."), ephemeral=True)
+
+        elif setting == "update_channel":
+            if action == "clear":
+                await db.set_guild_field(interaction.guild_id, "update_channel_id", None)
+                await interaction.response.send_message(embed=success_embed("Update channel cleared — bot updates will be sent to the server owner via DM."), ephemeral=True)
+            elif channel:
+                await db.set_guild_field(interaction.guild_id, "update_channel_id", channel.id)
+                await interaction.response.send_message(embed=success_embed(f"Bot update announcements will be posted to {channel.mention}."), ephemeral=True)
+            else:
+                await interaction.response.send_message(embed=error_embed("Provide a channel."), ephemeral=True)
 
         await send_log(interaction.guild, "general", discord.Embed(
             description=f":gear: **{interaction.user}** updated setting `{setting}` ({action})",

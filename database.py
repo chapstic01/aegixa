@@ -236,6 +236,7 @@ async def init_db():
             "ALTER TABLE guilds ADD COLUMN verification_channel_id INTEGER",
             "ALTER TABLE guilds ADD COLUMN verified_role_id INTEGER",
             "ALTER TABLE guilds ADD COLUMN unverified_role_id INTEGER",
+            "ALTER TABLE guilds ADD COLUMN update_channel_id INTEGER",
             "ALTER TABLE guild_settings ADD COLUMN auto_detect_raids INTEGER DEFAULT 1",
             "ALTER TABLE guild_settings ADD COLUMN raid_join_threshold INTEGER DEFAULT 10",
             "ALTER TABLE guild_settings ADD COLUMN raid_join_window INTEGER DEFAULT 10",
@@ -290,7 +291,7 @@ async def get_guild(guild_id: int) -> Optional[dict]:
 
 
 async def set_guild_field(guild_id: int, field: str, value: Any):
-    allowed = {"alert_channel_id", "announcement_channel_id", "announcement_role_id"}
+    allowed = {"alert_channel_id", "announcement_channel_id", "announcement_role_id", "update_channel_id"}
     if field not in allowed:
         raise ValueError(f"Unknown guild field: {field}")
     await ensure_guild(guild_id)
