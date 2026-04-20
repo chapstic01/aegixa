@@ -232,6 +232,33 @@ class MessageManagement(commands.Cog):
         channel = channel or interaction.channel
         await interaction.response.send_modal(SayModal(channel))
 
+    @app_commands.command(name="welcome", description="Send the Aegixa welcome/setup message in this channel")
+    @app_commands.describe(channel="Channel to send to (defaults to current)")
+    @is_staff()
+    async def welcome(self, interaction: discord.Interaction, channel: discord.TextChannel = None):
+        from config import PREMIUM_URL, SUPPORT_SERVER
+        target = channel or interaction.channel
+        embed = discord.Embed(
+            title="Thanks for adding Aegixa!",
+            description=(
+                "Aegixa is a full-featured security and moderation bot.\n\n"
+                "**Get started:**\n"
+                "• `/setup staff` — set your staff role\n"
+                "• `/setup logs` — configure log channels\n"
+                "• `/setup update` — configure anti-raid thresholds\n"
+                "• `/help` — browse all commands\n\n"
+                "**Automod is on by default.** Use `/filters list` to review.\n\n"
+                f"[Get Premium]({PREMIUM_URL})  |  [Support]({SUPPORT_SERVER})"
+            ),
+            color=0x5865F2,
+        )
+        embed.set_thumbnail(url=interaction.client.user.display_avatar.url)
+        embed.set_footer(text="Use /about for more info")
+        await target.send(embed=embed)
+        await interaction.response.send_message(
+            embed=success_embed(f"Welcome message sent to {target.mention}."), ephemeral=True
+        )
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(MessageManagement(bot))
