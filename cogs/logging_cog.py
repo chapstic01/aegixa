@@ -1,6 +1,6 @@
 """
-Logging cog — 8 independent log channels.
-general / spam / member / edit / delete / voice / roles / channels
+Logging cog — 9 independent log channels.
+general / spam / member / edit / delete / voice / roles / channels / modactions
 """
 
 import discord
@@ -42,6 +42,19 @@ class Logging(commands.Cog):
     async def on_member_join(self, member: discord.Member):
         if not await self._feature_enabled(member.guild.id):
             return
+
+        if member.bot:
+            embed = discord.Embed(
+                title="Bot Added",
+                color=0x9B59B6,
+                timestamp=discord.utils.utcnow(),
+            )
+            embed.set_author(name=str(member), icon_url=member.display_avatar.url)
+            embed.add_field(name="Bot", value=f"{member.mention} (`{member.id}`)", inline=True)
+            embed.set_footer(text="A new bot was added to the server")
+            await send_log(member.guild, "member", embed)
+            return
+
         embed = discord.Embed(
             title="Member Joined",
             color=LOG_COLORS["member"],
@@ -180,6 +193,44 @@ class Logging(commands.Cog):
         if not await self._feature_enabled(after.guild.id):
             return
 
+        # Nickname change
+        if before.nick != after.nick:
+            embed = discord.Embed(
+                title="Nickname Changed",
+                color=LOG_COLORS["roles"],
+                timestamp=discord.utils.utcnow(),
+            )
+            embed.set_author(name=str(after), icon_url=after.display_avatar.url)
+            embed.add_field(name="Member", value=f"{after.mention} (`{after.id}`)", inline=False)
+            embed.add_field(name="Before", value=before.nick or "*none*", inline=True)
+            embed.add_field(name="After", value=after.nick or "*none*", inline=True)
+            await send_log(after.guild, "modactions", embed)
+
+        # Timeout added / removed
+        before_to = before.timed_out_until
+        after_to = after.timed_out_until
+        if before_to != after_to:
+            if after_to and (not before_to or after_to > discord.utils.utcnow()):
+                embed = discord.Embed(
+                    title="Member Timed Out",
+                    color=LOG_COLORS["spam"],
+                    timestamp=discord.utils.utcnow(),
+                )
+                embed.set_author(name=str(after), icon_url=after.display_avatar.url)
+                embed.add_field(name="Member", value=f"{after.mention} (`{after.id}`)", inline=True)
+                embed.add_field(name="Until", value=f"<t:{int(after_to.timestamp())}:F>", inline=True)
+                await send_log(after.guild, "modactions", embed)
+            elif before_to and not after_to:
+                embed = discord.Embed(
+                    title="Timeout Removed",
+                    color=LOG_COLORS["member"],
+                    timestamp=discord.utils.utcnow(),
+                )
+                embed.set_author(name=str(after), icon_url=after.display_avatar.url)
+                embed.add_field(name="Member", value=f"{after.mention} (`{after.id}`)", inline=True)
+                await send_log(after.guild, "modactions", embed)
+
+        # Role changes
         before_roles = set(before.roles)
         after_roles = set(after.roles)
 
@@ -236,17 +287,98 @@ class Logging(commands.Cog):
             changes.append(f"**Topic:** `{before.topic or 'none'}` → `{after.topic or 'none'}`")
 
         if not changes:
-            # Check permission overwrites
-            if before.overwrites != after.overwrites:
-                changes.append("Permission overwrites changed.")
-
-        if not changes:
             return
 
         embed = discord.Embed(title="Channel Updated", color=LOG_COLORS["channels"], timestamp=discord.utils.utcnow())
         embed.add_field(name="Channel", value=after.mention if hasattr(after, 'mention') else f"#{after.name}", inline=True)
         embed.add_field(name="Changes", value="\n".join(changes), inline=False)
         await send_log(after.guild, "channels", embed)
+
+
+    # -----------------------------------------------------------------------
+    # Native ban / unban log (catches Discord right-click bans too)
+    # -----------------------------------------------------------------------
+
+    @commands.Cog.listener()
+    async def on_member_ban(self, guild: discord.Guild, user: discord.User):
+        if not await self._feature_enabled(guild.id):
+            return
+        embed = discord.Embed(
+            title="Member Banned",
+            color=LOG_COLORS["spam"],
+            timestamp=discord.utils.utcnow(),
+        )
+        embed.set_author(name=str(user), icon_url=user.display_avatar.url)
+        embed.add_field(name="User", value=f"{user.mention} (`{user.id}`)", inline=True)
+
+        # Try to pull reason from audit log
+        try:
+            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.ban):
+                if entry.target.id == user.id:
+                    embed.add_field(name="Reason", value=entry.reason or "No reason provided", inline=True)
+                    embed.add_field(name="By", value=f"{entry.user.mention}", inline=True)
+                    break
+        except discord.Forbidden:
+            pass
+
+        await send_log(guild, "modactions", embed)
+
+    @commands.Cog.listener()
+    async def on_member_unban(self, guild: discord.Guild, user: discord.User):
+        if not await self._feature_enabled(guild.id):
+            return
+        embed = discord.Embed(
+            title="Member Unbanned",
+            color=LOG_COLORS["member"],
+            timestamp=discord.utils.utcnow(),
+        )
+        embed.set_author(name=str(user), icon_url=user.display_avatar.url)
+        embed.add_field(name="User", value=f"{user.mention} (`{user.id}`)", inline=True)
+
+        try:
+            async for entry in guild.audit_logs(limit=1, action=discord.AuditLogAction.unban):
+                if entry.target.id == user.id:
+                    embed.add_field(name="By", value=f"{entry.user.mention}", inline=True)
+                    break
+        except discord.Forbidden:
+            pass
+
+        await send_log(guild, "modactions", embed)
+
+    # -----------------------------------------------------------------------
+    # Invite log
+    # -----------------------------------------------------------------------
+
+    @commands.Cog.listener()
+    async def on_invite_create(self, invite: discord.Invite):
+        if not await self._feature_enabled(invite.guild.id):
+            return
+        embed = discord.Embed(
+            title="Invite Created",
+            color=LOG_COLORS["channels"],
+            timestamp=discord.utils.utcnow(),
+        )
+        embed.add_field(name="Code", value=f"`{invite.code}`", inline=True)
+        embed.add_field(name="Created By", value=f"{invite.inviter.mention}" if invite.inviter else "Unknown", inline=True)
+        embed.add_field(name="Channel", value=invite.channel.mention if invite.channel else "Unknown", inline=True)
+        max_uses = str(invite.max_uses) if invite.max_uses else "∞"
+        expires = f"<t:{int(invite.expires_at.timestamp())}:R>" if invite.expires_at else "Never"
+        embed.add_field(name="Max Uses", value=max_uses, inline=True)
+        embed.add_field(name="Expires", value=expires, inline=True)
+        await send_log(invite.guild, "channels", embed)
+
+    @commands.Cog.listener()
+    async def on_invite_delete(self, invite: discord.Invite):
+        if not await self._feature_enabled(invite.guild.id):
+            return
+        embed = discord.Embed(
+            title="Invite Deleted",
+            color=0xED4245,
+            timestamp=discord.utils.utcnow(),
+        )
+        embed.add_field(name="Code", value=f"`{invite.code}`", inline=True)
+        embed.add_field(name="Channel", value=invite.channel.mention if invite.channel else "Unknown", inline=True)
+        await send_log(invite.guild, "channels", embed)
 
 
 async def setup(bot: commands.Bot):

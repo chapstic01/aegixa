@@ -25,7 +25,12 @@ def _make_home_embed(guild_count: int) -> discord.Embed:
     e = discord.Embed(
         title="Aegixa — Help",
         description=(
-            "Use the dropdown below to browse commands by category.\n\n"
+            "Select a category from the dropdown to browse commands.\n\n"
+            "**Quick Start**\n"
+            "1. `/setup staff` — set your staff role\n"
+            "2. `/setup logs` — configure log channels\n"
+            "3. `/filters list` — review automod filters\n"
+            "4. `/website` — view dashboard & premium links\n\n"
             f"**Servers:** {guild_count}  |  "
             f"[Support]({SUPPORT_SERVER})  |  [Premium]({PREMIUM_URL})"
         ),
@@ -39,31 +44,47 @@ CATEGORY_EMBEDS = {
     "moderation": lambda: discord.Embed(
         title="🔨 Moderation",
         description=(
-            "`/ban` `/unban` `/kick`\n"
-            "`/mute <member> <duration>` `/unmute`\n"
-            "`/tempban <member> <duration>`\n"
-            "`/warn add/view/remove`\n"
-            "`/lock` `/unlock` `/slowmode <seconds>`\n"
-            "`/purge <amount>`\n"
-            "`/nick <member> [nickname]`\n"
-            "`/rolecolor <role> <#hex>`\n"
-            "`/vcmove <member> <channel>`\n"
-            "`/roletoggle <member> <role>`\n"
-            "`/block` `/unblock`\n"
-            "`/threshold <warnings>` — auto-ban at N warnings"
+            "**Actions**\n"
+            "`/ban <member> [reason]` — ban from server\n"
+            "`/unban <user_id> [reason]` — unban by ID\n"
+            "`/kick <member> [reason]` — kick from server\n"
+            "`/mute <member> <duration> [reason]` — timeout (e.g. `10m`, `2h`, `7d`)\n"
+            "`/unmute <member>` — remove timeout\n"
+            "`/tempban <member> <duration> [reason]` — ban then auto-unban\n\n"
+            "**Warnings**\n"
+            "`/warn add <member> [reason]` — issue a warning\n"
+            "`/warn view <member>` — see all warnings\n"
+            "`/warn remove <id>` — delete a warning by ID\n"
+            "`/threshold <number>` — auto-ban after N warnings (0 = off)\n\n"
+            "**Channel**\n"
+            "`/lock [reason]` `/unlock [reason]` — block/allow @everyone\n"
+            "`/slowmode <seconds>` — rate limit (0 = off)\n"
+            "`/purge <amount>` — delete up to 100 messages\n"
+            "`/block <member>` `/unblock <member>` — per-channel message block\n\n"
+            "**Members**\n"
+            "`/nick <member> [nickname]` — set or reset nickname\n"
+            "`/roletoggle <member> <role>` — add or remove a role\n"
+            "`/vcmove <member> <channel>` — move to voice channel\n"
+            "`/rolecolor <role> <#hex>` — change role colour"
         ),
         color=0xED4245,
     ),
     "automod": lambda: discord.Embed(
         title="🤖 Auto-Moderation",
         description=(
-            "`/filters toggle <filter> <true/false>`\n"
-            "`/filters punishment <filter> <none/warn/mute/kick/ban>`\n"
+            "**Filters** — each has its own on/off and punishment\n"
+            "`/filters toggle <filter> <true/false>` — enable or disable\n"
+            "`/filters punishment <filter> <none/warn/mute/kick/ban>` — set action\n"
             "`/filters bulk <true/false>` — toggle all at once\n"
             "`/filters list` — view all filter states\n\n"
-            "`/words add <word>` `/words remove <word>` `/words list`\n\n"
-            "**Filters:** spam · word · image · sticker · external_emoji\n"
-            "link · invite · caps · rate_limit · **phishing ⭐**\n\n"
+            "**Available filters:**\n"
+            "`spam` `word` `image` `sticker` `external_emoji`\n"
+            "`link` `invite` `caps` `rate_limit` `phishing` ⭐\n\n"
+            "**Banned Words**\n"
+            "`/words add <word>` — add to blocked list\n"
+            "`/words remove <word>` — remove from list\n"
+            "`/words list` — view all banned words\n\n"
+            "**Feature & Command Control**\n"
             "`/features toggle <feature>` `/features list`\n"
             "`/cmds toggle <command>` `/cmds list`"
         ),
@@ -72,27 +93,35 @@ CATEGORY_EMBEDS = {
     "raid": lambda: discord.Embed(
         title="🛡️ Anti-Raid",
         description=(
-            "`/raidmode <true/false>` — manually lock all channels\n\n"
-            "**Auto-Detection** monitors join rate and triggers lockdown\n"
-            "automatically when a raid is detected.\n\n"
-            "Configure via `/setup update` and guild settings."
+            "`/raidmode true` — immediately lock every channel\n"
+            "`/raidmode false` — unlock and resume normal operation\n\n"
+            "**Auto-Detection**\n"
+            "Aegixa monitors join rate automatically. When it detects a\n"
+            "surge it locks the server, alerts your alert channel, and\n"
+            "lifts the lockdown after 5 minutes.\n\n"
+            "**Account-Age Gate**\n"
+            "Accounts newer than the configured minimum age are kicked\n"
+            "or banned on join before they can do anything.\n\n"
+            "Configure thresholds with `/setup update`."
         ),
         color=0xFF4444,
     ),
     "logging": lambda: discord.Embed(
         title="📋 Logging",
         description=(
-            "`/setup logs` — set all 8 log channels at once\n\n"
-            "**Log types:**\n"
-            "• `general` — commands & misc actions\n"
-            "• `spam` — automod alerts\n"
-            "• `member` — joins, leaves, verifications\n"
-            "• `edit` — message edits\n"
-            "• `delete` — message deletes\n"
-            "• `voice` — voice join/leave/switch (with duration)\n"
+            "`/setup logs` — set all log channels at once\n\n"
+            "**Log channels & what they capture:**\n"
+            "• `general` — slash command usage, misc actions\n"
+            "• `spam` — automod filter triggers\n"
+            "• `member` — joins, leaves, bots added\n"
+            "• `edit` — message edits (before & after)\n"
+            "• `delete` — deleted messages & attachments\n"
+            "• `voice` — VC joins, leaves, switches + duration\n"
             "• `roles` — role changes on members\n"
-            "• `channels` — channel create/edit/delete\n"
-            "• `modactions` — bans, kicks, mutes, temp-bans"
+            "• `channels` — channel create/rename/delete, invites\n"
+            "• `modactions` — bans, kicks, mutes, timeouts, nickname changes\n\n"
+            "All logs include timestamp, user, and relevant context.\n"
+            "Native Discord bans and timeouts are also captured."
         ),
         color=0x5865F2,
     ),
@@ -100,14 +129,16 @@ CATEGORY_EMBEDS = {
         title="🎭 Role Tools",
         description=(
             "**Role Automation**\n"
-            "`/roleauto swapadd <trigger> <remove>` — gain A → remove B\n"
-            "`/roleauto swapremove <id>` `/roleauto swaplist`\n"
-            "`/roleauto grantadd <trigger> <grant>` — gain A → also grant B\n"
-            "`/roleauto grantremove <id>` `/roleauto grantlist`\n\n"
+            "`/roleauto swapadd <trigger> <remove>` — gain role A → lose role B\n"
+            "`/roleauto swapremove <id>` — delete a swap rule\n"
+            "`/roleauto swaplist` — view all swap rules\n"
+            "`/roleauto grantadd <trigger> <grant>` — gain role A → also get role B\n"
+            "`/roleauto grantremove <id>` — delete a grant rule\n"
+            "`/roleauto grantlist` — view all grant rules\n\n"
             "**Reaction Roles**\n"
-            "`/reactionrole add <msg_id> <emoji> <role>`\n"
-            "`/reactionrole remove <msg_id> <emoji>`\n"
-            "`/reactionrole list`"
+            "`/reactionrole add <msg_id> <emoji> <role>` — bind emoji to role\n"
+            "`/reactionrole remove <msg_id> <emoji>` — remove binding\n"
+            "`/reactionrole list` — view all reaction roles"
         ),
         color=0x00B0F4,
     ),
@@ -115,15 +146,25 @@ CATEGORY_EMBEDS = {
         title="🔧 Utility",
         description=(
             "**Info**\n"
-            "`/member [user]` `/avatar [user]` `/server` `/roles`\n\n"
-            "**Messages**\n"
-            "`/say [channel]` — send text as the bot\n"
-            "`/embed send [channel]` `/embed edit <msg_id>`\n"
-            "`/announce send [guild_id]` — broadcast to all servers\n\n"
+            "`/member [user]` — show member info, roles, join date\n"
+            "`/avatar [user]` — show full-size avatar\n"
+            "`/server` — show server stats\n"
+            "`/roles` — list all server roles\n\n"
+            "**Sending Messages**\n"
+            "`/say [channel]` — send plain text as the bot (popup)\n"
+            "`/embed send [channel]` — send a custom embed (popup)\n"
+            "`/embed edit <msg_id>` — edit a bot message or embed\n"
+            "`/announce send` — post to all servers' announcement channels\n"
+            "`/welcome [channel]` — re-send the setup/welcome embed\n"
+            "`/website` — show links to website and dashboard\n\n"
             "**Sticky Messages**\n"
-            "`/sticky set <content>` `/sticky clear` `/sticky view`\n\n"
+            "`/sticky set` — pin a message to the bottom of a channel (popup)\n"
+            "`/sticky clear` — remove sticky from this channel\n"
+            "`/sticky view` — preview the current sticky\n\n"
             "**Setup**\n"
-            "`/setup staff` `/setup logs` `/setup update`"
+            "`/setup staff` — configure staff, config, and alert roles\n"
+            "`/setup logs` — set log channels\n"
+            "`/setup update <setting>` — change individual settings"
         ),
         color=0x57F287,
     ),
@@ -131,27 +172,35 @@ CATEGORY_EMBEDS = {
         title="🎉 Giveaways & Invite Tracking",
         description=(
             "**Giveaways**\n"
-            "`/giveaway start <duration> <winners> <prize>`\n"
-            "`/giveaway end <msg_id>` — end early\n"
+            "`/giveaway start [channel]` — opens a popup to set prize, duration & winners\n"
+            "`/giveaway end <msg_id>` — end a giveaway early\n"
             "`/giveaway reroll <msg_id>` — pick new winners\n"
-            "`/giveaway list` — active giveaways\n\n"
+            "`/giveaway list` — view all active giveaways\n\n"
+            "**How giveaways work:**\n"
+            "Members react with 🎉 to enter. When time is up, Aegixa\n"
+            "picks random winners and announces them in the channel.\n\n"
             "**Invite Tracking**\n"
-            "Automatically logs which invite link a new member used.\n"
-            "Visible in the `member` log channel."
+            "When a member joins, Aegixa logs which invite link they used.\n"
+            "This shows in the `member` log channel automatically — no setup needed."
         ),
         color=0xFFA500,
     ),
     "premium": lambda: discord.Embed(
         title="⭐ Premium",
         description=(
-            "`/premium` — check this server's premium status\n"
-            "`/redeem <key>` — activate a license key\n"
-            "`/verification setup` — member verification gate ⭐\n"
-            "`/filters toggle phishing true` — phishing detection ⭐\n\n"
+            "**Status & Activation**\n"
+            "`/premium` — check if this server has premium active\n"
+            "`/redeem <key>` — activate a license key you purchased\n\n"
+            "**Premium Features**\n"
+            "`/filters toggle phishing true` — scan every message for scam links\n"
+            "`/verification setup` — hold new members in a gate until verified\n"
+            "`/verification toggle` — enable or disable the gate\n"
+            "`/verification status` — view current verification config\n\n"
             f"[Buy a key]({PREMIUM_URL})  |  [Support]({SUPPORT_SERVER})\n\n"
-            "**Owner commands** *(bot owner only)*\n"
+            "**Owner-only commands**\n"
             "`/genkey <tier> <days>` — generate a license key\n"
-            "`/givepremium <guild_id> <days>` — grant free premium"
+            "`/givepremium <days> [guild_id]` — grant free premium\n"
+            "`/update` — broadcast an update to all servers"
         ),
         color=0xFFD700,
     ),
