@@ -196,6 +196,105 @@ class HelpView(discord.ui.View):
 
 
 # ---------------------------------------------------------------------------
+# Update modal
+# ---------------------------------------------------------------------------
+
+COLOR_MAP = {
+    "blue":   0x5865F2,
+    "green":  0x57F287,
+    "red":    0xED4245,
+    "yellow": 0xFEE75C,
+    "purple": 0x9B59B6,
+    "gold":   0xFFD700,
+    "white":  0xFFFFFF,
+}
+
+
+class _UpdateModal(discord.ui.Modal, title="Broadcast Update"):
+    embed_title = discord.ui.TextInput(
+        label="Title",
+        placeholder="e.g. v2.1 Released",
+        max_length=256,
+    )
+    message = discord.ui.TextInput(
+        label="Message",
+        style=discord.TextStyle.paragraph,
+        placeholder="Write your update here. Press Enter for new paragraphs.",
+        max_length=4000,
+    )
+    color = discord.ui.TextInput(
+        label="Colour",
+        placeholder="blue / green / red / yellow / purple / gold / white",
+        default="blue",
+        max_length=10,
+    )
+    footer = discord.ui.TextInput(
+        label="Footer (optional)",
+        placeholder="Aegixa Bot Update",
+        default="Aegixa Bot Update",
+        required=False,
+        max_length=100,
+    )
+
+    def __init__(self, bot):
+        super().__init__()
+        self.bot = bot
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+
+        hex_color = COLOR_MAP.get(self.color.value.strip().lower(), 0x5865F2)
+        footer_text = self.footer.value.strip() or "Aegixa Bot Update"
+
+        embed = discord.Embed(
+            title=self.embed_title.value,
+            description=self.message.value,
+            color=hex_color,
+            timestamp=discord.utils.utcnow(),
+        )
+        embed.set_footer(text=footer_text)
+
+        sent = 0
+        failed = 0
+        channel_posts = 0
+
+        for guild in self.bot.guilds:
+            row = await db.get_guild(guild.id)
+            update_channel_id = row.get("update_channel_id") if row else None
+
+            if update_channel_id:
+                channel = guild.get_channel(update_channel_id)
+                if channel:
+                    try:
+                        await channel.send(embed=embed)
+                        channel_posts += 1
+                        continue
+                    except discord.HTTPException:
+                        pass
+
+            try:
+                owner = await self.bot.fetch_user(guild.owner_id)
+                owner_embed = discord.Embed(
+                    title=self.embed_title.value,
+                    description=self.message.value,
+                    color=hex_color,
+                    timestamp=discord.utils.utcnow(),
+                )
+                owner_embed.set_footer(text=f"{footer_text} • Sent to you as owner of {guild.name}")
+                await owner.send(embed=owner_embed)
+                sent += 1
+            except (discord.HTTPException, discord.Forbidden):
+                failed += 1
+
+        summary = f"**Update sent.**\n• Posted to update channels: **{channel_posts}**\n• DMed server owners: **{sent}**"
+        if failed:
+            summary += f"\n• Failed (DMs closed): **{failed}**"
+
+        await interaction.followup.send(embed=success_embed(summary), ephemeral=True)
+        log.info("Owner sent update to %d channels, %d owner DMs (%d failed)", channel_posts, sent, failed)
+
+
+# ---------------------------------------------------------------------------
 # Cog
 # ---------------------------------------------------------------------------
 
@@ -281,97 +380,13 @@ class Admin(commands.Cog):
         )
         log.info("Owner granted %d days premium to guild %s (%s)", days, name, target_id)
 
-    @app_commands.command(name="update", description="Send a custom embed update to all servers (owner only)")
-    @app_commands.describe(
-        title="Embed title",
-        message="Message body — use \\n for paragraph breaks",
-        color="Embed colour",
-        footer="Footer text (optional)",
-    )
-    @app_commands.choices(color=[
-        app_commands.Choice(name="Blue (default)",  value="blue"),
-        app_commands.Choice(name="Green",           value="green"),
-        app_commands.Choice(name="Red",             value="red"),
-        app_commands.Choice(name="Yellow",          value="yellow"),
-        app_commands.Choice(name="Purple",          value="purple"),
-        app_commands.Choice(name="Gold / Premium",  value="gold"),
-        app_commands.Choice(name="White",           value="white"),
-    ])
-    async def update(
-        self,
-        interaction: discord.Interaction,
-        title: str,
-        message: str,
-        color: str = "blue",
-        footer: str = "Aegixa Bot Update",
-    ):
+    @app_commands.command(name="update", description="Compose and send a broadcast embed to all servers (owner only)")
+    async def update(self, interaction: discord.Interaction):
         if interaction.user.id != OWNER_ID:
             return await interaction.response.send_message(
                 embed=error_embed("This command is restricted to the bot owner."), ephemeral=True
             )
-
-        await interaction.response.defer(ephemeral=True)
-
-        color_map = {
-            "blue":   0x5865F2,
-            "green":  0x57F287,
-            "red":    0xED4245,
-            "yellow": 0xFEE75C,
-            "purple": 0x9B59B6,
-            "gold":   0xFFD700,
-            "white":  0xFFFFFF,
-        }
-
-        sent = 0
-        failed = 0
-        channel_posts = 0
-
-        # Support \n for paragraph breaks
-        description = message.replace("\\n", "\n")
-
-        embed = discord.Embed(
-            title=title,
-            description=description,
-            color=color_map.get(color, 0x5865F2),
-            timestamp=discord.utils.utcnow(),
-        )
-        embed.set_footer(text=footer)
-
-        for guild in self.bot.guilds:
-            row = await db.get_guild(guild.id)
-            update_channel_id = row.get("update_channel_id") if row else None
-
-            if update_channel_id:
-                channel = guild.get_channel(update_channel_id)
-                if channel:
-                    try:
-                        await channel.send(embed=embed)
-                        channel_posts += 1
-                        continue
-                    except discord.HTTPException:
-                        pass
-
-            # Fall back to DMing the guild owner
-            try:
-                owner = await self.bot.fetch_user(guild.owner_id)
-                owner_embed = discord.Embed(
-                    title=title,
-                    description=description,
-                    color=color_map.get(color, 0x5865F2),
-                    timestamp=discord.utils.utcnow(),
-                )
-                owner_embed.set_footer(text=f"{footer} • Sent to you as owner of {guild.name}")
-                await owner.send(embed=owner_embed)
-                sent += 1
-            except (discord.HTTPException, discord.Forbidden):
-                failed += 1
-
-        summary = f"**Update sent.**\n• Posted to update channels: **{channel_posts}**\n• DMed server owners: **{sent}**"
-        if failed:
-            summary += f"\n• Failed (DMs closed): **{failed}**"
-
-        await interaction.followup.send(embed=success_embed(summary), ephemeral=True)
-        log.info("Owner sent update to %d channels, %d owner DMs (%d failed)", channel_posts, sent, failed)
+        await interaction.response.send_modal(_UpdateModal(self.bot))
 
     @app_commands.command(name="genkey", description="Generate a premium license key (owner only)")
     @app_commands.describe(days="Duration in days", uses="Max redemptions (default 1)")
