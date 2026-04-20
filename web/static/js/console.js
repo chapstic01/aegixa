@@ -100,8 +100,11 @@ function renderMessage(msg) {
   const time = new Date(msg.timestamp).toLocaleString();
 
   let content = escHtml(msg.content || '');
-  // Resolve <@id> mentions
-  content = content.replace(/&lt;@!?(\d+)&gt;/g, '@$1');
+  // Resolve <@id> mentions to styled @Name spans
+  content = content.replace(/&lt;@!?(\d+)&gt;/g, (_, id) => {
+    const name = (msg.mentions || {})[id] || id;
+    return `<span class="mention">@${escHtml(name)}</span>`;
+  });
 
   let embedsHtml = '';
   for (const e of msg.embeds || []) {

@@ -262,3 +262,6 @@ tr:hover td { background: var(--bg-tertiary); }
 
 /* Category separator */
 .channel-category { padding: 0.6rem 0.5rem 0.25rem; font-size: 0.7rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; }
+
+/* ------- MENTIONS ------- */
+.mention { background: rgba(88,101,242,0.2); color: #a5b4fc; border-radius: 4px; padding: 0 3px; font-weight: 500; }

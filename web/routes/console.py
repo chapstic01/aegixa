@@ -90,6 +90,7 @@ def get_messages(guild_id, channel_id):
             "embeds": embeds,
             "attachments": attachments,
             "reactions": reactions,
+            "mentions": {str(u.id): u.display_name for u in msg.mentions},
         })
     return jsonify(result)
 
