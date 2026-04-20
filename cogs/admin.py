@@ -281,9 +281,30 @@ class Admin(commands.Cog):
         )
         log.info("Owner granted %d days premium to guild %s (%s)", days, name, target_id)
 
-    @app_commands.command(name="update", description="Send a bot update message to all server owners or their update channel (owner only)")
-    @app_commands.describe(message="The update message to send")
-    async def update(self, interaction: discord.Interaction, message: str):
+    @app_commands.command(name="update", description="Send a custom embed update to all servers (owner only)")
+    @app_commands.describe(
+        title="Embed title",
+        message="Message body — use \\n for paragraph breaks",
+        color="Embed colour",
+        footer="Footer text (optional)",
+    )
+    @app_commands.choices(color=[
+        app_commands.Choice(name="Blue (default)",  value="blue"),
+        app_commands.Choice(name="Green",           value="green"),
+        app_commands.Choice(name="Red",             value="red"),
+        app_commands.Choice(name="Yellow",          value="yellow"),
+        app_commands.Choice(name="Purple",          value="purple"),
+        app_commands.Choice(name="Gold / Premium",  value="gold"),
+        app_commands.Choice(name="White",           value="white"),
+    ])
+    async def update(
+        self,
+        interaction: discord.Interaction,
+        title: str,
+        message: str,
+        color: str = "blue",
+        footer: str = "Aegixa Bot Update",
+    ):
         if interaction.user.id != OWNER_ID:
             return await interaction.response.send_message(
                 embed=error_embed("This command is restricted to the bot owner."), ephemeral=True
@@ -291,17 +312,30 @@ class Admin(commands.Cog):
 
         await interaction.response.defer(ephemeral=True)
 
+        color_map = {
+            "blue":   0x5865F2,
+            "green":  0x57F287,
+            "red":    0xED4245,
+            "yellow": 0xFEE75C,
+            "purple": 0x9B59B6,
+            "gold":   0xFFD700,
+            "white":  0xFFFFFF,
+        }
+
         sent = 0
         failed = 0
         channel_posts = 0
 
+        # Support \n for paragraph breaks
+        description = message.replace("\\n", "\n")
+
         embed = discord.Embed(
-            title="📢 Aegixa Update",
-            description=message,
-            color=0x5865F2,
+            title=title,
+            description=description,
+            color=color_map.get(color, 0x5865F2),
             timestamp=discord.utils.utcnow(),
         )
-        embed.set_footer(text="Aegixa Bot Update")
+        embed.set_footer(text=footer)
 
         for guild in self.bot.guilds:
             row = await db.get_guild(guild.id)
@@ -321,12 +355,12 @@ class Admin(commands.Cog):
             try:
                 owner = await self.bot.fetch_user(guild.owner_id)
                 owner_embed = discord.Embed(
-                    title="📢 Aegixa Update",
-                    description=message,
-                    color=0x5865F2,
+                    title=title,
+                    description=description,
+                    color=color_map.get(color, 0x5865F2),
                     timestamp=discord.utils.utcnow(),
                 )
-                owner_embed.set_footer(text=f"Sent to you as owner of {guild.name}")
+                owner_embed.set_footer(text=f"{footer} • Sent to you as owner of {guild.name}")
                 await owner.send(embed=owner_embed)
                 sent += 1
             except (discord.HTTPException, discord.Forbidden):
