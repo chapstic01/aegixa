@@ -48,7 +48,7 @@ def create_app(bot) -> Flask:
 
         session["user"] = user
         session["access_token"] = token_data["access_token"]
-        next_url = request.args.get("next") or url_for("dashboard.index")
+        next_url = request.args.get("next") or url_for("dashboard.servers")
         return redirect(next_url)
 
     @auth_bp.get("/auth/logout")

@@ -1,17 +1,38 @@
 """
-Dashboard web routes — guild selector and main management interface.
+Dashboard web routes — landing page, guild selector, main management interface.
 """
 
 import os
-from flask import Blueprint, render_template, session, redirect, url_for, request, abort
+from flask import Blueprint, render_template, session, redirect, url_for, request, abort, current_app
 from web.auth import login_required
+from config import PREMIUM_URL, SUPPORT_SERVER
 
 dashboard = Blueprint("dashboard", __name__)
 
+INVITE_URL = os.getenv(
+    "BOT_INVITE_URL",
+    "https://discord.com/oauth2/authorize?permissions=8&scope=bot%20applications.commands",
+)
+PREMIUM_PRICE = os.getenv("PREMIUM_PRICE", "2.99")
+
 
 @dashboard.get("/")
-@login_required
 def index():
+    bot = current_app.bot
+    guild_count = len(bot.guilds) if bot.is_ready() else 0
+    return render_template(
+        "landing.html",
+        guild_count=guild_count,
+        invite_url=INVITE_URL,
+        premium_url=PREMIUM_URL,
+        support_server=SUPPORT_SERVER,
+        premium_price=PREMIUM_PRICE,
+    )
+
+
+@dashboard.get("/servers")
+@login_required
+def servers():
     return render_template("index.html", user=session["user"])
 
 
