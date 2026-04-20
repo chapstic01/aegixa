@@ -5,6 +5,8 @@ All functions are safe to call from the bot's async event loop.
 
 import aiosqlite
 import os
+import secrets
+import hashlib
 from datetime import datetime
 from typing import Any, Optional
 
@@ -189,6 +191,24 @@ CREATE TABLE IF NOT EXISTS invite_cache (
     PRIMARY KEY (guild_id, invite_code)
 );
 
+CREATE TABLE IF NOT EXISTS premium_guilds (
+    guild_id      INTEGER PRIMARY KEY,
+    activated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at    TIMESTAMP,
+    license_key   TEXT,
+    tier          TEXT DEFAULT 'premium'
+);
+
+CREATE TABLE IF NOT EXISTS license_keys (
+    key_hash      TEXT PRIMARY KEY,
+    tier          TEXT    DEFAULT 'premium',
+    duration_days INTEGER DEFAULT 30,
+    max_uses      INTEGER DEFAULT 1,
+    uses          INTEGER DEFAULT 0,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by    INTEGER
+);
+
 CREATE TABLE IF NOT EXISTS mod_actions (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     guild_id        INTEGER NOT NULL,
@@ -210,6 +230,23 @@ async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         await db.executescript(SCHEMA)
+        # Add columns introduced after initial schema (safe on existing DBs)
+        _new_cols = [
+            "ALTER TABLE guilds ADD COLUMN verification_enabled INTEGER DEFAULT 0",
+            "ALTER TABLE guilds ADD COLUMN verification_channel_id INTEGER",
+            "ALTER TABLE guilds ADD COLUMN verified_role_id INTEGER",
+            "ALTER TABLE guilds ADD COLUMN unverified_role_id INTEGER",
+            "ALTER TABLE guild_settings ADD COLUMN auto_detect_raids INTEGER DEFAULT 1",
+            "ALTER TABLE guild_settings ADD COLUMN raid_join_threshold INTEGER DEFAULT 10",
+            "ALTER TABLE guild_settings ADD COLUMN raid_join_window INTEGER DEFAULT 10",
+            "ALTER TABLE guild_settings ADD COLUMN raid_action TEXT DEFAULT 'kick'",
+            "ALTER TABLE guild_settings ADD COLUMN min_account_age INTEGER DEFAULT 0",
+        ]
+        for stmt in _new_cols:
+            try:
+                await db.execute(stmt)
+            except Exception:
+                pass  # column already exists
         await db.commit()
 
 
@@ -610,7 +647,9 @@ async def get_guild_settings(guild_id: int) -> dict:
 
 
 async def set_guild_setting(guild_id: int, field: str, value):
-    allowed = {"auto_ban_threshold", "raid_mode", "rate_limit_count", "rate_limit_seconds", "caps_percent", "caps_min_length"}
+    allowed = {"auto_ban_threshold", "raid_mode", "rate_limit_count", "rate_limit_seconds",
+               "caps_percent", "caps_min_length", "auto_detect_raids", "raid_join_threshold",
+               "raid_join_window", "raid_action", "min_account_age"}
     if field not in allowed:
         raise ValueError(f"Unknown setting: {field}")
     await _execute(
@@ -759,4 +798,85 @@ async def get_mod_actions(guild_id: int, limit: int = 50) -> list[dict]:
     return await _fetchall(
         "SELECT * FROM mod_actions WHERE guild_id=? ORDER BY created_at DESC LIMIT ?",
         (guild_id, limit),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Premium / license keys
+# ---------------------------------------------------------------------------
+
+async def is_premium(guild_id: int) -> bool:
+    row = await _fetchone(
+        """SELECT 1 FROM premium_guilds
+           WHERE guild_id = ?
+           AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)""",
+        (guild_id,),
+    )
+    return bool(row)
+
+
+async def generate_license_key(tier: str, duration_days: int, created_by: int, max_uses: int = 1) -> str:
+    raw_key = secrets.token_urlsafe(24)
+    key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
+    await _execute(
+        "INSERT INTO license_keys (key_hash, tier, duration_days, max_uses, created_by) VALUES (?,?,?,?,?)",
+        (key_hash, tier, duration_days, max_uses, created_by),
+    )
+    return raw_key
+
+
+async def grant_premium(guild_id: int, days: int, tier: str = "premium"):
+    """Grant premium to a guild without a license key (owner gifting)."""
+    await _execute(
+        """INSERT OR REPLACE INTO premium_guilds (guild_id, expires_at, license_key, tier)
+           VALUES (?, datetime('now', '+' || ? || ' days'), 'GIFTED', ?)""",
+        (guild_id, days, tier),
+    )
+
+
+async def redeem_license_key(guild_id: int, raw_key: str) -> tuple[bool, str]:
+    key_hash = hashlib.sha256(raw_key.strip().encode()).hexdigest()
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM license_keys WHERE key_hash = ?", (key_hash,)) as cur:
+            key = await cur.fetchone()
+        if not key:
+            return False, "Invalid license key."
+        if key["uses"] >= key["max_uses"]:
+            return False, "This key has already been used the maximum number of times."
+        await db.execute(
+            """INSERT OR REPLACE INTO premium_guilds (guild_id, expires_at, license_key, tier)
+               VALUES (?, datetime('now', '+' || ? || ' days'), ?, ?)""",
+            (guild_id, key["duration_days"], raw_key[:8] + "****", key["tier"]),
+        )
+        await db.execute("UPDATE license_keys SET uses = uses + 1 WHERE key_hash = ?", (key_hash,))
+        await db.commit()
+    return True, f"Premium activated for **{key['duration_days']} days**!"
+
+
+# ---------------------------------------------------------------------------
+# Verification config (stored in guilds table)
+# ---------------------------------------------------------------------------
+
+async def get_verification(guild_id: int) -> dict:
+    row = await _fetchone(
+        """SELECT verification_enabled, verification_channel_id,
+                  verified_role_id, unverified_role_id
+           FROM guilds WHERE guild_id = ?""",
+        (guild_id,),
+    )
+    return row or {"verification_enabled": 0, "verification_channel_id": None,
+                   "verified_role_id": None, "unverified_role_id": None}
+
+
+async def set_verification(guild_id: int, **kwargs):
+    allowed = {"verification_enabled", "verification_channel_id", "verified_role_id", "unverified_role_id"}
+    kwargs = {k: v for k, v in kwargs.items() if k in allowed}
+    if not kwargs:
+        return
+    await ensure_guild(guild_id)
+    set_clause = ", ".join(f"{k} = ?" for k in kwargs)
+    await _execute(
+        f"UPDATE guilds SET {set_clause} WHERE guild_id = ?",
+        (*kwargs.values(), guild_id),
     )

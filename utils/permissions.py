@@ -1,16 +1,24 @@
 """Permission helpers for Aegixa commands."""
 
+import os
 import discord
 from discord import app_commands
 import database as db
 from typing import Callable
 
 
+def _is_owner(user_id: int) -> bool:
+    owner_id = int(os.getenv("BOT_OWNER_ID", "0"))
+    return owner_id != 0 and user_id == owner_id
+
+
 def is_staff() -> Callable:
-    """Check: user has Manage Messages OR a configured staff role."""
+    """Check: bot owner, Manage Messages, OR a configured staff role."""
     async def predicate(interaction: discord.Interaction) -> bool:
         if interaction.guild is None:
             return False
+        if _is_owner(interaction.user.id):
+            return True
         member = interaction.user
         if member.guild_permissions.manage_messages:
             return True
@@ -29,10 +37,12 @@ def is_staff() -> Callable:
 
 
 def is_admin() -> Callable:
-    """Check: user has Administrator permission."""
+    """Check: bot owner OR Administrator permission."""
     async def predicate(interaction: discord.Interaction) -> bool:
         if interaction.guild is None:
             return False
+        if _is_owner(interaction.user.id):
+            return True
         if interaction.user.guild_permissions.administrator:
             return True
         await interaction.response.send_message(

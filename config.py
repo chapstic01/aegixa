@@ -1,3 +1,10 @@
+import os
+
+# Premium / support
+PREMIUM_URL    = os.getenv("PREMIUM_URL", "https://example.gumroad.com/l/aegixa")
+SUPPORT_SERVER = os.getenv("SUPPORT_SERVER", "https://discord.gg/example")
+COLOR_PREMIUM  = 0xFFD700
+
 FEATURES = [
     "spam_filter",
     "word_filter",
@@ -41,6 +48,7 @@ FILTER_NAMES = [
     "invite",
     "caps",
     "rate_limit",
+    "phishing",   # Premium — detected by utils/phishing.py
 ]
 
 PROTECTED_COMMANDS = ["setup", "cmds", "about"]

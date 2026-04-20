@@ -16,6 +16,7 @@ from utils.helpers import (
     error_embed,
 )
 from utils.text_normalize import contains_banned_word
+from utils.phishing import scan_message as phishing_scan
 from datetime import timedelta
 from collections import defaultdict
 import time
@@ -330,6 +331,20 @@ class Automod(commands.Cog):
                     reason = f"Message was {int(upper_ratio)}% uppercase (limit: {caps_pct}%)."
                     await self._send_alert(guild, "Caps Filter", message, reason)
                     await self._apply_punishment(message, f_caps["punishment"], "caps", reason)
+                    return
+
+        # ---- Phishing / scam detection (Premium) ----
+        if await db.is_premium(guild.id) and message.content:
+            f_phish = await db.get_filter(guild.id, "phishing")
+            if f_phish["enabled"]:
+                flagged, phish_reason = phishing_scan(message.content)
+                if flagged:
+                    try:
+                        await message.delete()
+                    except discord.HTTPException:
+                        pass
+                    await self._send_alert(guild, "Phishing", message, phish_reason)
+                    await self._apply_punishment(message, f_phish["punishment"], "phishing", phish_reason)
                     return
 
         # ---- Rate limit filter ----

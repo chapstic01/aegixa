@@ -260,22 +260,32 @@ class FeatureControl(commands.Cog):
 
     @app_commands.command(name="about", description="About Aegixa")
     async def about(self, interaction: discord.Interaction):
+        from config import PREMIUM_URL, SUPPORT_SERVER
+        is_prem = await db.is_premium(interaction.guild_id) if interaction.guild else False
         embed = discord.Embed(
-            title="Aegixa",
+            title="Aegixa — Security & Moderation Bot",
             description=(
-                "A full-featured Discord moderation bot.\n\n"
-                "**Features:**\n"
-                "• Automatic spam, word, image, sticker & emoji filters\n"
-                "• Full moderation command suite\n"
-                "• 8 independent log channels\n"
+                "A full-featured Discord security and moderation bot.\n\n"
+                "**Core Features**\n"
+                "• 9 content filters with per-filter punishments\n"
+                "• Full moderation suite (ban, kick, mute, temp-ban, purge…)\n"
+                "• 9 independent log channels\n"
                 "• Role swap & grant automation\n"
+                "• Reaction roles, giveaways, sticky messages\n"
+                "• Invite tracking, anti-raid auto-detection\n"
                 "• Web dashboard with Discord OAuth2\n\n"
+                "**Premium Features ⭐**\n"
+                "• Phishing & scam link detection\n"
+                "• Member verification gate\n\n"
+                f"[Get Premium]({PREMIUM_URL})  |  [Support]({SUPPORT_SERVER})\n\n"
+                "Use `/help` to browse all commands.\n"
                 "Use `/setup staff` and `/setup logs` to get started."
             ),
             color=0x5865F2,
         )
-        embed.add_field(name="Servers", value=str(len(interaction.client.guilds)), inline=True)
-        embed.add_field(name="Commands", value="37+", inline=True)
+        embed.add_field(name="Servers",  value=str(len(interaction.client.guilds)), inline=True)
+        embed.add_field(name="Commands", value="50+",                                inline=True)
+        embed.add_field(name="Premium",  value="⭐ Active" if is_prem else "🔓 Free", inline=True)
         embed.set_thumbnail(url=interaction.client.user.display_avatar.url)
         await interaction.response.send_message(embed=embed)
 
