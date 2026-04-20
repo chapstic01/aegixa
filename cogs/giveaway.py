@@ -85,44 +85,78 @@ async def end_giveaway_logic(bot: commands.Bot, giveaway: dict):
             pass
 
 
-class GiveawayGroup(app_commands.Group):
-    def __init__(self):
-        super().__init__(name="giveaway", description="Manage giveaways")
+class GiveawayModal(discord.ui.Modal, title="Start a Giveaway"):
+    prize = discord.ui.TextInput(
+        label="Prize",
+        placeholder="e.g. Discord Nitro, £10 Steam Gift Card",
+        max_length=200,
+    )
+    duration = discord.ui.TextInput(
+        label="Duration",
+        placeholder="e.g. 10m, 2h, 1d, 7d",
+        max_length=20,
+    )
+    winners = discord.ui.TextInput(
+        label="Number of Winners",
+        placeholder="1",
+        default="1",
+        max_length=2,
+    )
 
-    @app_commands.command(name="start", description="Start a giveaway")
-    @app_commands.describe(duration="Duration e.g. 10m, 1h, 7d", winners="Number of winners", prize="What is being given away")
-    @is_staff()
-    async def giveaway_start(self, interaction: discord.Interaction, duration: str, winners: int, prize: str):
-        secs = parse_duration(duration)
+    def __init__(self, channel: discord.TextChannel, host: discord.Member):
+        super().__init__()
+        self.channel = channel
+        self.host = host
+
+    async def on_submit(self, interaction: discord.Interaction):
+        secs = parse_duration(self.duration.value.strip())
         if not secs or secs < 10:
-            return await interaction.response.send_message(embed=error_embed("Invalid duration. Minimum is 10 seconds."), ephemeral=True)
-        winners = max(1, min(winners, 20))
+            return await interaction.response.send_message(
+                embed=error_embed("Invalid duration. Use formats like `10m`, `2h`, `1d`."), ephemeral=True
+            )
+        try:
+            winner_count = max(1, min(int(self.winners.value.strip()), 20))
+        except ValueError:
+            winner_count = 1
 
+        prize_text = self.prize.value.strip()
         ends_at = datetime.now(timezone.utc) + timedelta(seconds=secs)
         ends_str = ends_at.strftime("%Y-%m-%d %H:%M:%S")
 
         giveaway_id = await db.create_giveaway(
-            interaction.guild_id, interaction.channel_id, prize, winners,
-            interaction.user.id, ends_str,
+            interaction.guild_id, self.channel.id, prize_text, winner_count,
+            self.host.id, ends_str,
         )
 
         embed = discord.Embed(
-            title=f"🎉 {prize}",
+            title=f"🎉 {prize_text}",
             description=(
                 f"React with {GIVEAWAY_EMOJI} to enter!\n\n"
                 f"Ends: <t:{int(ends_at.timestamp())}:R>\n"
-                f"Winners: **{winners}**\n"
-                f"Hosted by: {interaction.user.mention}"
+                f"Winners: **{winner_count}**\n"
+                f"Hosted by: {self.host.mention}"
             ),
             color=0x5865F2,
         )
         embed.set_footer(text=f"Giveaway ID: {giveaway_id} • Ends at")
         embed.timestamp = ends_at
 
-        await interaction.response.send_message("🎉 Giveaway started!", ephemeral=True)
-        msg = await interaction.channel.send(embed=embed)
+        await interaction.response.send_message(embed=success_embed(f"🎉 Giveaway started in {self.channel.mention}!"), ephemeral=True)
+        msg = await self.channel.send(embed=embed)
         await msg.add_reaction(GIVEAWAY_EMOJI)
         await db.set_giveaway_message(giveaway_id, msg.id)
+
+
+class GiveawayGroup(app_commands.Group):
+    def __init__(self):
+        super().__init__(name="giveaway", description="Manage giveaways")
+
+    @app_commands.command(name="start", description="Start a giveaway")
+    @app_commands.describe(channel="Channel to post the giveaway in (defaults to current)")
+    @is_staff()
+    async def giveaway_start(self, interaction: discord.Interaction, channel: discord.TextChannel = None):
+        target = channel or interaction.channel
+        await interaction.response.send_modal(GiveawayModal(target, interaction.user))
 
     @app_commands.command(name="end", description="End a giveaway early by message ID")
     @app_commands.describe(message_id="The giveaway message ID")

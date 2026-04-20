@@ -15,20 +15,50 @@ import logging
 log = logging.getLogger(__name__)
 
 
+class StickyModal(discord.ui.Modal, title="Set Sticky Message"):
+    content = discord.ui.TextInput(
+        label="Message Content",
+        style=discord.TextStyle.paragraph,
+        placeholder="This message will be re-posted every time someone sends in this channel.",
+        max_length=2000,
+    )
+
+    def __init__(self, channel: discord.TextChannel, existing: str = None):
+        super().__init__()
+        self.channel = channel
+        if existing:
+            self.content.default = existing
+
+    async def on_submit(self, interaction: discord.Interaction):
+        text = self.content.value
+
+        # Delete old sticky if present
+        existing = await db.get_sticky(interaction.guild_id, self.channel.id)
+        if existing and existing.get("last_message_id"):
+            try:
+                old = await self.channel.fetch_message(existing["last_message_id"])
+                await old.delete()
+            except discord.HTTPException:
+                pass
+
+        await db.set_sticky(interaction.guild_id, self.channel.id, text)
+        await interaction.response.send_message(
+            embed=success_embed(f"Sticky message set in {self.channel.mention}."), ephemeral=True
+        )
+        msg = await self.channel.send(embed=discord.Embed(description=f"📌 {text}", color=0xFEE75C))
+        await db.update_sticky_message_id(interaction.guild_id, self.channel.id, msg.id)
+
+
 class StickyGroup(app_commands.Group):
     def __init__(self):
         super().__init__(name="sticky", description="Manage sticky messages")
 
     @app_commands.command(name="set", description="Set a sticky message in the current channel")
-    @app_commands.describe(content="The message to keep pinned at the bottom")
     @is_staff()
-    async def sticky_set(self, interaction: discord.Interaction, content: str):
-        await db.set_sticky(interaction.guild_id, interaction.channel_id, content)
-        await interaction.response.send_message(embed=success_embed(f"Sticky message set in {interaction.channel.mention}."), ephemeral=True)
-
-        # Post it immediately
-        msg = await interaction.channel.send(embed=discord.Embed(description=f"📌 {content}", color=0xFEE75C))
-        await db.update_sticky_message_id(interaction.guild_id, interaction.channel_id, msg.id)
+    async def sticky_set(self, interaction: discord.Interaction):
+        existing = await db.get_sticky(interaction.guild_id, interaction.channel_id)
+        current_content = existing["content"] if existing else None
+        await interaction.response.send_modal(StickyModal(interaction.channel, current_content))
 
     @app_commands.command(name="clear", description="Remove the sticky message from the current channel")
     @is_staff()
