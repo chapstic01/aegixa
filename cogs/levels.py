@@ -218,6 +218,21 @@ class LevelConfigGroup(app_commands.Group):
             embed=success_embed(f"XP cooldown set to **{seconds}s**."), ephemeral=True
         )
 
+    @app_commands.command(name="voicexp", description="Enable or disable XP for time spent in voice channels")
+    @app_commands.describe(enabled="True to enable, False to disable")
+    @is_admin()
+    async def lc_voicexp(self, interaction: discord.Interaction, enabled: bool):
+        if not await _is_premium(interaction.guild_id):
+            return await interaction.response.send_message(
+                embed=error_embed("The XP/Levels system requires **Aegixa Premium**."), ephemeral=True
+            )
+        await db.set_xp_config(interaction.guild_id, voice_xp_enabled=1 if enabled else 0)
+        state = "enabled" if enabled else "disabled"
+        await interaction.response.send_message(
+            embed=success_embed(f"Voice XP {state}. Members now earn XP for time spent in voice channels."),
+            ephemeral=True,
+        )
+
 
 # ---------------------------------------------------------------------------
 # Cog
@@ -229,6 +244,8 @@ class Levels(commands.Cog):
         self.bot.tree.add_command(LevelRolesGroup())
         self.bot.tree.add_command(XPAdminGroup())
         self.bot.tree.add_command(LevelConfigGroup())
+        # voice session tracking: {(guild_id, user_id): join_datetime}
+        self._voice_sessions: dict[tuple[int, int], datetime] = {}
 
     @app_commands.command(name="level", description="Check your level and XP progress")
     @app_commands.describe(member="Member to check (defaults to you)")
@@ -343,6 +360,50 @@ class Levels(commands.Cog):
             await channel.send(text)
         except discord.HTTPException:
             pass
+
+
+    @commands.Cog.listener()
+    async def on_voice_state_update(
+        self,
+        member: discord.Member,
+        before: discord.VoiceState,
+        after: discord.VoiceState,
+    ):
+        if member.bot:
+            return
+        if not await _is_premium(member.guild.id):
+            return
+
+        cfg = await db.get_xp_config(member.guild.id)
+        if not cfg.get("voice_xp_enabled") or not cfg["enabled"]:
+            return
+
+        key = (member.guild.id, member.id)
+        now = datetime.now(timezone.utc)
+
+        # Joined a voice channel
+        if before.channel is None and after.channel is not None:
+            self._voice_sessions[key] = now
+
+        # Left a voice channel
+        elif before.channel is not None and after.channel is None:
+            join_time = self._voice_sessions.pop(key, None)
+            if join_time:
+                minutes = (now - join_time).total_seconds() / 60
+                xp_gain = int(minutes * cfg.get("voice_xp_per_minute", 1))
+                if xp_gain > 0:
+                    row = await db.get_user_xp(member.guild.id, member.id)
+                    old_level = row["level"] if row else 0
+                    await db.add_user_xp(member.guild.id, member.id, xp_gain)
+                    updated = await db.get_user_xp(member.guild.id, member.id)
+                    new_level = _level_from_xp(updated["xp"])
+                    if new_level > old_level:
+                        # Fake a minimal message-like context for level-up
+                        class _FakeMsg:
+                            guild = member.guild
+                            author = member
+                            channel = before.channel
+                        await self._handle_levelup(_FakeMsg(), new_level, cfg)
 
 
 async def setup(bot: commands.Bot):

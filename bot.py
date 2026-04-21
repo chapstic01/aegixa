@@ -32,6 +32,11 @@ COGS = [
     "cogs.join_leave",
     "cogs.starboard",
     "cogs.levels",
+    "cogs.tickets",
+    "cogs.polls",
+    "cogs.server_stats",
+    "cogs.custom_commands",
+    "cogs.scheduler",
 ]
 
 

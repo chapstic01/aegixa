@@ -277,7 +277,69 @@ CREATE TABLE IF NOT EXISTS xp_config (
     xp_max              INTEGER DEFAULT 25,
     cooldown_seconds    INTEGER DEFAULT 60,
     levelup_channel_id  INTEGER,
-    levelup_message     TEXT DEFAULT 'GG {mention}, you reached **level {level}**! 🎉'
+    levelup_message     TEXT DEFAULT 'GG {mention}, you reached **level {level}**! 🎉',
+    voice_xp_enabled    INTEGER DEFAULT 0,
+    voice_xp_per_minute INTEGER DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS ticket_config (
+    guild_id            INTEGER PRIMARY KEY,
+    panel_channel_id    INTEGER,
+    log_channel_id      INTEGER,
+    support_role_id     INTEGER,
+    category_id         INTEGER,
+    welcome_message     TEXT DEFAULT 'Support will be with you shortly. Please describe your issue.',
+    enabled             INTEGER DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS tickets (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id        INTEGER NOT NULL,
+    channel_id      INTEGER NOT NULL,
+    user_id         INTEGER NOT NULL,
+    ticket_number   INTEGER NOT NULL,
+    claimed_by      INTEGER,
+    closed          INTEGER DEFAULT 0,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS stats_channels (
+    guild_id        INTEGER NOT NULL,
+    stat_type       TEXT NOT NULL,
+    channel_id      INTEGER NOT NULL,
+    PRIMARY KEY (guild_id, stat_type)
+);
+
+CREATE TABLE IF NOT EXISTS custom_commands (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id    INTEGER NOT NULL,
+    name        TEXT NOT NULL,
+    response    TEXT NOT NULL,
+    created_by  INTEGER,
+    UNIQUE(guild_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS scheduled_messages (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id    INTEGER NOT NULL,
+    channel_id  INTEGER NOT NULL,
+    content     TEXT NOT NULL,
+    send_at     TIMESTAMP NOT NULL,
+    sent        INTEGER DEFAULT 0,
+    created_by  INTEGER,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS polls (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id    INTEGER NOT NULL,
+    channel_id  INTEGER NOT NULL,
+    message_id  INTEGER,
+    question    TEXT NOT NULL,
+    options     TEXT,
+    ended       INTEGER DEFAULT 0,
+    created_by  INTEGER,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 """
 
@@ -302,6 +364,10 @@ async def init_db():
             "ALTER TABLE guild_settings ADD COLUMN raid_join_window INTEGER DEFAULT 10",
             "ALTER TABLE guild_settings ADD COLUMN raid_action TEXT DEFAULT 'kick'",
             "ALTER TABLE guild_settings ADD COLUMN min_account_age INTEGER DEFAULT 0",
+            "ALTER TABLE join_leave_config ADD COLUMN dm_message TEXT DEFAULT 'Welcome to {server}, {user}! We''re glad to have you here.'",
+            "ALTER TABLE join_leave_config ADD COLUMN dm_enabled INTEGER DEFAULT 0",
+            "ALTER TABLE xp_config ADD COLUMN voice_xp_enabled INTEGER DEFAULT 0",
+            "ALTER TABLE xp_config ADD COLUMN voice_xp_per_minute INTEGER DEFAULT 1",
         ]
         for stmt in _new_cols:
             try:
@@ -1048,11 +1114,12 @@ async def get_xp_config(guild_id: int) -> dict:
         "guild_id": guild_id, "enabled": 1, "xp_min": 15, "xp_max": 25,
         "cooldown_seconds": 60, "levelup_channel_id": None,
         "levelup_message": "GG {mention}, you reached **level {level}**! 🎉",
+        "voice_xp_enabled": 0, "voice_xp_per_minute": 1,
     }
 
 
 async def set_xp_config(guild_id: int, **kwargs):
-    allowed = {"enabled", "xp_min", "xp_max", "cooldown_seconds", "levelup_channel_id", "levelup_message"}
+    allowed = {"enabled", "xp_min", "xp_max", "cooldown_seconds", "levelup_channel_id", "levelup_message", "voice_xp_enabled", "voice_xp_per_minute"}
     kwargs = {k: v for k, v in kwargs.items() if k in allowed}
     if not kwargs:
         return
@@ -1122,3 +1189,174 @@ async def remove_level_role(guild_id: int, level: int) -> bool:
         cur = await db.execute("DELETE FROM level_roles WHERE guild_id=? AND level=?", (guild_id, level))
         await db.commit()
         return cur.rowcount > 0
+
+
+# ---------------------------------------------------------------------------
+# Tickets
+# ---------------------------------------------------------------------------
+
+async def get_ticket_config(guild_id: int) -> dict:
+    row = await _fetchone("SELECT * FROM ticket_config WHERE guild_id = ?", (guild_id,))
+    return dict(row) if row else {
+        "guild_id": guild_id, "panel_channel_id": None, "log_channel_id": None,
+        "support_role_id": None, "category_id": None,
+        "welcome_message": "Support will be with you shortly. Please describe your issue.",
+        "enabled": 1,
+    }
+
+
+async def set_ticket_config(guild_id: int, **kwargs):
+    allowed = {"panel_channel_id", "log_channel_id", "support_role_id", "category_id", "welcome_message", "enabled"}
+    kwargs = {k: v for k, v in kwargs.items() if k in allowed}
+    if not kwargs:
+        return
+    cols = ", ".join(kwargs.keys())
+    placeholders = ", ".join("?" for _ in kwargs)
+    updates = ", ".join(f"{k}=excluded.{k}" for k in kwargs)
+    await _execute(
+        f"INSERT INTO ticket_config (guild_id, {cols}) VALUES (?, {placeholders}) "
+        f"ON CONFLICT(guild_id) DO UPDATE SET {updates}",
+        (guild_id, *kwargs.values()),
+    )
+
+
+async def create_ticket(guild_id: int, channel_id: int, user_id: int) -> int:
+    count_row = await _fetchone("SELECT COUNT(*) as n FROM tickets WHERE guild_id=?", (guild_id,))
+    ticket_number = (count_row["n"] if count_row else 0) + 1
+    return await _execute(
+        "INSERT INTO tickets (guild_id, channel_id, user_id, ticket_number) VALUES (?,?,?,?)",
+        (guild_id, channel_id, user_id, ticket_number),
+    )
+
+
+async def get_ticket_by_channel(channel_id: int) -> Optional[dict]:
+    return await _fetchone("SELECT * FROM tickets WHERE channel_id=? AND closed=0", (channel_id,))
+
+
+async def get_open_tickets(guild_id: int) -> list[dict]:
+    return await _fetchall("SELECT * FROM tickets WHERE guild_id=? AND closed=0 ORDER BY created_at DESC", (guild_id,))
+
+
+async def close_ticket(channel_id: int):
+    await _execute("UPDATE tickets SET closed=1 WHERE channel_id=?", (channel_id,))
+
+
+async def claim_ticket(channel_id: int, moderator_id: int):
+    await _execute("UPDATE tickets SET claimed_by=? WHERE channel_id=?", (moderator_id, channel_id))
+
+
+async def get_user_open_ticket(guild_id: int, user_id: int) -> Optional[dict]:
+    return await _fetchone(
+        "SELECT * FROM tickets WHERE guild_id=? AND user_id=? AND closed=0",
+        (guild_id, user_id),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Server stats channels
+# ---------------------------------------------------------------------------
+
+async def set_stats_channel(guild_id: int, stat_type: str, channel_id: int):
+    await _execute(
+        "INSERT OR REPLACE INTO stats_channels (guild_id, stat_type, channel_id) VALUES (?,?,?)",
+        (guild_id, stat_type, channel_id),
+    )
+
+
+async def get_stats_channels(guild_id: int) -> dict[str, int]:
+    rows = await _fetchall("SELECT stat_type, channel_id FROM stats_channels WHERE guild_id=?", (guild_id,))
+    return {r["stat_type"]: r["channel_id"] for r in rows}
+
+
+async def delete_stats_channels(guild_id: int):
+    await _execute("DELETE FROM stats_channels WHERE guild_id=?", (guild_id,))
+
+
+# ---------------------------------------------------------------------------
+# Custom commands
+# ---------------------------------------------------------------------------
+
+async def get_custom_commands(guild_id: int) -> list[dict]:
+    return await _fetchall("SELECT * FROM custom_commands WHERE guild_id=? ORDER BY name", (guild_id,))
+
+
+async def get_custom_command(guild_id: int, name: str) -> Optional[dict]:
+    return await _fetchone(
+        "SELECT * FROM custom_commands WHERE guild_id=? AND name=?",
+        (guild_id, name.lower()),
+    )
+
+
+async def set_custom_command(guild_id: int, name: str, response: str, created_by: int):
+    await _execute(
+        "INSERT OR REPLACE INTO custom_commands (guild_id, name, response, created_by) VALUES (?,?,?,?)",
+        (guild_id, name.lower(), response, created_by),
+    )
+
+
+async def delete_custom_command(guild_id: int, name: str) -> bool:
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute(
+            "DELETE FROM custom_commands WHERE guild_id=? AND name=?",
+            (guild_id, name.lower()),
+        )
+        await db.commit()
+        return cur.rowcount > 0
+
+
+# ---------------------------------------------------------------------------
+# Scheduled messages
+# ---------------------------------------------------------------------------
+
+async def add_scheduled_message(guild_id: int, channel_id: int, content: str, send_at: str, created_by: int) -> int:
+    return await _execute(
+        "INSERT INTO scheduled_messages (guild_id, channel_id, content, send_at, created_by) VALUES (?,?,?,?,?)",
+        (guild_id, channel_id, content, send_at, created_by),
+    )
+
+
+async def get_pending_scheduled_messages(now: str) -> list[dict]:
+    return await _fetchall(
+        "SELECT * FROM scheduled_messages WHERE send_at <= ? AND sent=0",
+        (now,),
+    )
+
+
+async def mark_scheduled_sent(msg_id: int):
+    await _execute("UPDATE scheduled_messages SET sent=1 WHERE id=?", (msg_id,))
+
+
+async def get_scheduled_messages(guild_id: int) -> list[dict]:
+    return await _fetchall(
+        "SELECT * FROM scheduled_messages WHERE guild_id=? AND sent=0 ORDER BY send_at",
+        (guild_id,),
+    )
+
+
+async def delete_scheduled_message(msg_id: int, guild_id: int) -> bool:
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute(
+            "DELETE FROM scheduled_messages WHERE id=? AND guild_id=? AND sent=0",
+            (msg_id, guild_id),
+        )
+        await db.commit()
+        return cur.rowcount > 0
+
+
+# ---------------------------------------------------------------------------
+# Polls
+# ---------------------------------------------------------------------------
+
+async def create_poll(guild_id: int, channel_id: int, question: str, options: str, created_by: int) -> int:
+    return await _execute(
+        "INSERT INTO polls (guild_id, channel_id, question, options, created_by) VALUES (?,?,?,?,?)",
+        (guild_id, channel_id, question, options, created_by),
+    )
+
+
+async def set_poll_message(poll_id: int, message_id: int):
+    await _execute("UPDATE polls SET message_id=? WHERE id=?", (message_id, poll_id))
+
+
+async def end_poll(poll_id: int):
+    await _execute("UPDATE polls SET ended=1 WHERE id=?", (poll_id,))

@@ -33,6 +33,8 @@ FILTER_IMAGE = "image"
 FILTER_STICKER = "sticker"
 FILTER_EXTERNAL_EMOJI = "external_emoji"
 FILTER_LINK = "link"
+FILTER_MENTIONS = "mentions"
+MENTION_THRESHOLD = 5  # configurable via spam filter, this is the dedicated threshold
 
 
 class Automod(commands.Cog):
@@ -346,6 +348,20 @@ class Automod(commands.Cog):
                     await self._send_alert(guild, "Phishing", message, phish_reason)
                     await self._apply_punishment(message, f_phish["punishment"], "phishing", phish_reason)
                     return
+
+        # ---- Mention spam filter ----
+        f_mentions = await db.get_filter(guild.id, FILTER_MENTIONS)
+        if f_mentions["enabled"]:
+            mc = mention_count(message)
+            if mc >= MENTION_THRESHOLD:
+                try:
+                    await message.delete()
+                except discord.HTTPException:
+                    pass
+                reason = f"Mass mention: {mc} users mentioned in one message."
+                await self._send_alert(guild, "Mention Spam", message, reason)
+                await self._apply_punishment(message, f_mentions["punishment"], FILTER_MENTIONS, reason)
+                return
 
         # ---- Rate limit filter ----
         f_rate = await db.get_filter(guild.id, "rate_limit")

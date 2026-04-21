@@ -78,6 +78,60 @@ class LeaveMsgModal(discord.ui.Modal, title="Set Leave Message"):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+class WelcomeDMModal(discord.ui.Modal, title="Set Welcome DM"):
+    message = discord.ui.TextInput(
+        label="DM Message",
+        style=discord.TextStyle.paragraph,
+        placeholder="Welcome to {server}, {user}! We're glad to have you here.\n\nVariables: {user} {server} {id}",
+        max_length=1000,
+    )
+
+    def __init__(self, current: str = None):
+        super().__init__()
+        if current:
+            self.message.default = current
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await db.set_join_leave_config(interaction.guild_id, dm_message=self.message.value)
+        await interaction.response.send_message(
+            embed=success_embed("Welcome DM updated."), ephemeral=True
+        )
+
+
+class WelcomeDMGroup(app_commands.Group):
+    def __init__(self):
+        super().__init__(name="welcomedm", description="Send a private DM to members when they join")
+
+    @app_commands.command(name="setup", description="Set the welcome DM message")
+    @is_admin()
+    async def wdm_setup(self, interaction: discord.Interaction):
+        cfg = await db.get_join_leave_config(interaction.guild_id)
+        await interaction.response.send_modal(WelcomeDMModal(cfg.get("dm_message")))
+
+    @app_commands.command(name="toggle", description="Enable or disable welcome DMs")
+    @app_commands.describe(enabled="True to enable, False to disable")
+    @is_admin()
+    async def wdm_toggle(self, interaction: discord.Interaction, enabled: bool):
+        await db.set_join_leave_config(interaction.guild_id, dm_enabled=1 if enabled else 0)
+        state = "enabled" if enabled else "disabled"
+        await interaction.response.send_message(embed=success_embed(f"Welcome DMs {state}."), ephemeral=True)
+
+    @app_commands.command(name="test", description="Send yourself a test welcome DM")
+    @is_staff()
+    async def wdm_test(self, interaction: discord.Interaction):
+        cfg = await db.get_join_leave_config(interaction.guild_id)
+        dm_msg = cfg.get("dm_message") or "Welcome to {server}, {user}!"
+        text = _format(dm_msg, interaction.user)
+        try:
+            await interaction.user.send(text)
+            await interaction.response.send_message(embed=success_embed("Test DM sent!"), ephemeral=True)
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                embed=discord.Embed(description=":x: Could not DM you — your DMs may be closed.", color=0xED4245),
+                ephemeral=True,
+            )
+
+
 # ---------------------------------------------------------------------------
 # Command groups
 # ---------------------------------------------------------------------------
@@ -235,6 +289,7 @@ class JoinLeave(commands.Cog):
         self.bot.tree.add_command(JoinMsgGroup())
         self.bot.tree.add_command(LeaveMsgGroup())
         self.bot.tree.add_command(AutoroleGroup())
+        self.bot.tree.add_command(WelcomeDMGroup())
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
@@ -251,6 +306,13 @@ class JoinLeave(commands.Cog):
                     await channel.send(_format(cfg["join_message"], member))
                 except discord.HTTPException:
                     pass
+
+        # Welcome DM
+        if cfg.get("dm_enabled") and cfg.get("dm_message"):
+            try:
+                await member.send(_format(cfg["dm_message"], member))
+            except discord.HTTPException:
+                pass
 
         # Autoroles
         rows = await db.get_autoroles(member.guild.id)

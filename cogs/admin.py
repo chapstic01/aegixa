@@ -79,7 +79,7 @@ CATEGORY_EMBEDS = {
             "`/filters list` — view all filter states\n\n"
             "**Available filters:**\n"
             "`spam` `word` `image` `sticker` `external_emoji`\n"
-            "`link` `invite` `caps` `rate_limit` `phishing` ⭐\n\n"
+            "`link` `invite` `caps` `rate_limit` `mentions` `phishing` ⭐\n\n"
             "**Banned Words**\n"
             "`/words add <word>` — add to blocked list\n"
             "`/words remove <word>` — remove from list\n"
@@ -185,6 +185,47 @@ CATEGORY_EMBEDS = {
         ),
         color=0xFFA500,
     ),
+    "tickets": lambda: discord.Embed(
+        title="🎫 Ticket System",
+        description=(
+            "Clean, button-based support tickets — one per member.\n\n"
+            "**Setup (do once)**\n"
+            "`/ticket config [support_role] [log_channel] [category]` — configure\n"
+            "`/ticket message` — edit the welcome message inside tickets\n"
+            "`/ticket panel [channel]` — post the **Open a Ticket** button\n"
+            "`/ticket toggle <true/false>` — enable or disable\n\n"
+            "**Staff commands**\n"
+            "`/ticket close [reason]` — close from inside a ticket channel\n"
+            "`/ticket list` — view all open tickets\n\n"
+            "**How it works:**\n"
+            "Members click the panel button → private channel created.\n"
+            "Staff can **Claim** to take ownership, or **Close** to generate\n"
+            "a transcript and DM the member, then delete the channel."
+        ),
+        color=0x5865F2,
+    ),
+    "tools": lambda: discord.Embed(
+        title="🛠️ Extra Tools",
+        description=(
+            "**Polls**\n"
+            "`/poll [channel]` — opens a popup to write your question and options\n"
+            "Leave options blank for a yes/no vote. Up to 5 options.\n\n"
+            "**Custom Commands**\n"
+            "`/cc add <name>` — create a `!command` (opens message editor)\n"
+            "`/cc remove <name>` — delete a custom command\n"
+            "`/cc list` — view all custom commands\n"
+            "Members trigger them by typing `!commandname` in chat.\n\n"
+            "**Scheduled Messages**\n"
+            "`/schedule <when> [channel]` — schedule a message (30m, 2h, 1d…)\n"
+            "`/schedulelist` — view pending scheduled messages\n"
+            "`/schedulecancel <id>` — cancel a scheduled message\n\n"
+            "**Server Stats Channels**\n"
+            "`/stats setup` — create voice channels showing live member counts\n"
+            "`/stats remove` — remove all stat channels\n"
+            "`/stats refresh` — force-update stat channels now"
+        ),
+        color=0x57F287,
+    ),
     "welcome": lambda: discord.Embed(
         title="👋 Join / Leave & Autoroles",
         description=(
@@ -199,6 +240,10 @@ CATEGORY_EMBEDS = {
             "`/leavemsg message` — edit the leave message\n"
             "`/leavemsg toggle <true/false>` — enable or disable\n"
             "`/leavemsg test` — send a test message\n\n"
+            "**Welcome DM**\n"
+            "`/welcomedm setup` — edit the private DM sent to new members\n"
+            "`/welcomedm toggle <true/false>` — enable or disable\n"
+            "`/welcomedm test` — send yourself a test DM\n\n"
             "**Autoroles**\n"
             "`/autorole add <role> [delay]` — assign role on join (optional delay in seconds)\n"
             "`/autorole remove <role>` — remove an autorole\n"
@@ -225,7 +270,7 @@ CATEGORY_EMBEDS = {
     "levels": lambda: discord.Embed(
         title="🏆 XP / Levels ⭐ Premium",
         description=(
-            "Members earn XP by chatting. Each level-up is announced\n"
+            "Members earn XP by chatting and in voice. Each level-up is announced\n"
             "and optional role rewards are automatically assigned.\n\n"
             "**Member Commands**\n"
             "`/level [member]` — view level, XP, and progress bar\n"
@@ -241,6 +286,7 @@ CATEGORY_EMBEDS = {
             "**Config**\n"
             "`/levelconfig channel [channel]` — set level-up announcement channel\n"
             "`/levelconfig cooldown <seconds>` — set XP cooldown (10–600s)\n"
+            "`/levelconfig voicexp <true/false>` — award XP for voice time\n"
             "`/levelconfig toggle <true/false>` — enable or disable the system\n\n"
             "Requires **Aegixa Premium**."
         ),
@@ -276,7 +322,9 @@ SELECT_OPTIONS = [
     discord.SelectOption(label="Role Tools",          value="roles",       emoji="🎭"),
     discord.SelectOption(label="Utility",             value="utility",     emoji="🔧"),
     discord.SelectOption(label="Giveaways & Invites", value="events",      emoji="🎉"),
-    discord.SelectOption(label="Join / Leave & Autoroles", value="welcome", emoji="👋"),
+    discord.SelectOption(label="Ticket System",       value="tickets",     emoji="🎫"),
+    discord.SelectOption(label="Extra Tools",         value="tools",       emoji="🛠️"),
+    discord.SelectOption(label="Join / Leave & DMs",  value="welcome",     emoji="👋"),
     discord.SelectOption(label="Starboard",           value="starboard",   emoji="⭐"),
     discord.SelectOption(label="XP / Levels",         value="levels",      emoji="🏆"),
     discord.SelectOption(label="Premium",             value="premium",     emoji="💎"),
