@@ -368,6 +368,10 @@ async def init_db():
             "ALTER TABLE join_leave_config ADD COLUMN dm_enabled INTEGER DEFAULT 0",
             "ALTER TABLE xp_config ADD COLUMN voice_xp_enabled INTEGER DEFAULT 0",
             "ALTER TABLE xp_config ADD COLUMN voice_xp_per_minute INTEGER DEFAULT 1",
+            "ALTER TABLE ticket_config ADD COLUMN ticket_types TEXT",
+            "ALTER TABLE ticket_config ADD COLUMN idle_close_hours INTEGER DEFAULT 0",
+            "ALTER TABLE tickets ADD COLUMN ticket_type TEXT",
+            "ALTER TABLE tickets ADD COLUMN last_message_at TIMESTAMP",
         ]
         for stmt in _new_cols:
             try:
@@ -1216,12 +1220,15 @@ async def get_ticket_config(guild_id: int) -> dict:
         "guild_id": guild_id, "panel_channel_id": None, "log_channel_id": None,
         "support_role_id": None, "category_id": None,
         "welcome_message": "Support will be with you shortly. Please describe your issue.",
-        "enabled": 1,
+        "enabled": 1, "ticket_types": None, "idle_close_hours": 0,
     }
 
 
 async def set_ticket_config(guild_id: int, **kwargs):
-    allowed = {"panel_channel_id", "log_channel_id", "support_role_id", "category_id", "welcome_message", "enabled"}
+    allowed = {
+        "panel_channel_id", "log_channel_id", "support_role_id", "category_id",
+        "welcome_message", "enabled", "ticket_types", "idle_close_hours",
+    }
     kwargs = {k: v for k, v in kwargs.items() if k in allowed}
     if not kwargs:
         return
@@ -1235,12 +1242,13 @@ async def set_ticket_config(guild_id: int, **kwargs):
     )
 
 
-async def create_ticket(guild_id: int, channel_id: int, user_id: int) -> int:
+async def create_ticket(guild_id: int, channel_id: int, user_id: int, ticket_type: str = "Support") -> int:
     count_row = await _fetchone("SELECT COUNT(*) as n FROM tickets WHERE guild_id=?", (guild_id,))
     ticket_number = (count_row["n"] if count_row else 0) + 1
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     return await _execute(
-        "INSERT INTO tickets (guild_id, channel_id, user_id, ticket_number) VALUES (?,?,?,?)",
-        (guild_id, channel_id, user_id, ticket_number),
+        "INSERT INTO tickets (guild_id, channel_id, user_id, ticket_number, ticket_type, last_message_at) VALUES (?,?,?,?,?,?)",
+        (guild_id, channel_id, user_id, ticket_number, ticket_type, now),
     )
 
 
@@ -1258,6 +1266,24 @@ async def close_ticket(channel_id: int):
 
 async def claim_ticket(channel_id: int, moderator_id: int):
     await _execute("UPDATE tickets SET claimed_by=? WHERE channel_id=?", (moderator_id, channel_id))
+
+
+async def unclaim_ticket(channel_id: int):
+    await _execute("UPDATE tickets SET claimed_by=NULL WHERE channel_id=?", (channel_id,))
+
+
+async def touch_ticket(channel_id: int):
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    await _execute("UPDATE tickets SET last_message_at=? WHERE channel_id=? AND closed=0", (now, channel_id))
+
+
+async def get_idle_tickets(idle_hours: int) -> list[dict]:
+    return await _fetchall(
+        """SELECT * FROM tickets WHERE closed=0
+           AND last_message_at IS NOT NULL
+           AND last_message_at <= datetime('now', '-' || ? || ' hours')""",
+        (idle_hours,),
+    )
 
 
 async def get_user_open_ticket(guild_id: int, user_id: int) -> Optional[dict]:

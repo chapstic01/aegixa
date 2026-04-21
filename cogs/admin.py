@@ -188,19 +188,23 @@ CATEGORY_EMBEDS = {
     "tickets": lambda: discord.Embed(
         title="🎫 Ticket System",
         description=(
-            "Clean, button-based support tickets — one per member.\n\n"
-            "**Setup (do once)**\n"
+            "Button-based support tickets with types, transcripts, and auto-close.\n\n"
+            "**Setup**\n"
             "`/ticket config [support_role] [log_channel] [category]` — configure\n"
+            "`/ticket types` — set up to 3 ticket categories shown on the panel\n"
             "`/ticket message` — edit the welcome message inside tickets\n"
-            "`/ticket panel [channel]` — post the **Open a Ticket** button\n"
-            "`/ticket toggle <true/false>` — enable or disable\n\n"
-            "**Staff commands**\n"
-            "`/ticket close [reason]` — close from inside a ticket channel\n"
+            "`/ticket autoclose <hours>` — auto-close idle tickets (0 = off)\n"
+            "`/ticket toggle <true/false>` — enable or disable\n"
+            "`/ticket panel [channel]` — post the panel\n\n"
+            "**Staff commands (inside a ticket)**\n"
+            "`/ticket close [reason]` — close ticket, post HTML transcript\n"
+            "`/ticket adduser <member>` — add someone to this ticket\n"
+            "`/ticket removeuser <member>` — remove someone from this ticket\n"
+            "`/ticket rename <name>` — rename the ticket channel\n"
+            "`/ticket note <text>` — pin a staff-only note\n"
+            "`/ticket unclaim` — release your claim\n"
             "`/ticket list` — view all open tickets\n\n"
-            "**How it works:**\n"
-            "Members click the panel button → private channel created.\n"
-            "Staff can **Claim** to take ownership, or **Close** to generate\n"
-            "a transcript and DM the member, then delete the channel."
+            "Panel buttons: **Open** (per type) · **Claim** · **Unclaim** · **Close**"
         ),
         color=0x5865F2,
     ),
