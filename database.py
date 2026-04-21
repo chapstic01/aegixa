@@ -219,6 +219,66 @@ CREATE TABLE IF NOT EXISTS mod_actions (
     extra           TEXT,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS join_leave_config (
+    guild_id            INTEGER PRIMARY KEY,
+    join_channel_id     INTEGER,
+    join_message        TEXT DEFAULT 'Welcome {mention} to **{server}**! 👋',
+    join_enabled        INTEGER DEFAULT 0,
+    leave_channel_id    INTEGER,
+    leave_message       TEXT DEFAULT '**{user}** has left the server.',
+    leave_enabled       INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS autoroles (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id        INTEGER NOT NULL,
+    role_id         INTEGER NOT NULL,
+    delay_seconds   INTEGER DEFAULT 0,
+    UNIQUE(guild_id, role_id)
+);
+
+CREATE TABLE IF NOT EXISTS starboard_config (
+    guild_id        INTEGER PRIMARY KEY,
+    channel_id      INTEGER,
+    threshold       INTEGER DEFAULT 3,
+    emoji           TEXT DEFAULT '⭐',
+    enabled         INTEGER DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS starboard_entries (
+    guild_id            INTEGER NOT NULL,
+    original_message_id INTEGER NOT NULL,
+    starboard_message_id INTEGER NOT NULL,
+    PRIMARY KEY (guild_id, original_message_id)
+);
+
+CREATE TABLE IF NOT EXISTS user_xp (
+    guild_id        INTEGER NOT NULL,
+    user_id         INTEGER NOT NULL,
+    xp              INTEGER DEFAULT 0,
+    level           INTEGER DEFAULT 0,
+    last_xp_at      TIMESTAMP,
+    PRIMARY KEY (guild_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS level_roles (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id    INTEGER NOT NULL,
+    level       INTEGER NOT NULL,
+    role_id     INTEGER NOT NULL,
+    UNIQUE(guild_id, level)
+);
+
+CREATE TABLE IF NOT EXISTS xp_config (
+    guild_id            INTEGER PRIMARY KEY,
+    enabled             INTEGER DEFAULT 1,
+    xp_min              INTEGER DEFAULT 15,
+    xp_max              INTEGER DEFAULT 25,
+    cooldown_seconds    INTEGER DEFAULT 60,
+    levelup_channel_id  INTEGER,
+    levelup_message     TEXT DEFAULT 'GG {mention}, you reached **level {level}**! 🎉'
+);
 """
 
 
@@ -881,3 +941,184 @@ async def set_verification(guild_id: int, **kwargs):
         f"UPDATE guilds SET {set_clause} WHERE guild_id = ?",
         (*kwargs.values(), guild_id),
     )
+
+
+# ---------------------------------------------------------------------------
+# Join / Leave announcements
+# ---------------------------------------------------------------------------
+
+async def get_join_leave_config(guild_id: int) -> dict:
+    row = await _fetchone("SELECT * FROM join_leave_config WHERE guild_id = ?", (guild_id,))
+    return dict(row) if row else {
+        "guild_id": guild_id, "join_channel_id": None,
+        "join_message": "Welcome {mention} to **{server}**! 👋", "join_enabled": 0,
+        "leave_channel_id": None, "leave_message": "**{user}** has left the server.", "leave_enabled": 0,
+    }
+
+
+async def set_join_leave_config(guild_id: int, **kwargs):
+    allowed = {"join_channel_id", "join_message", "join_enabled", "leave_channel_id", "leave_message", "leave_enabled"}
+    kwargs = {k: v for k, v in kwargs.items() if k in allowed}
+    if not kwargs:
+        return
+    cols = ", ".join(kwargs.keys())
+    placeholders = ", ".join("?" for _ in kwargs)
+    updates = ", ".join(f"{k}=excluded.{k}" for k in kwargs)
+    await _execute(
+        f"INSERT INTO join_leave_config (guild_id, {cols}) VALUES (?, {placeholders}) "
+        f"ON CONFLICT(guild_id) DO UPDATE SET {updates}",
+        (guild_id, *kwargs.values()),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Autoroles
+# ---------------------------------------------------------------------------
+
+async def get_autoroles(guild_id: int) -> list[dict]:
+    return await _fetchall("SELECT * FROM autoroles WHERE guild_id = ? ORDER BY delay_seconds", (guild_id,))
+
+
+async def add_autorole(guild_id: int, role_id: int, delay_seconds: int = 0):
+    await _execute(
+        "INSERT OR REPLACE INTO autoroles (guild_id, role_id, delay_seconds) VALUES (?,?,?)",
+        (guild_id, role_id, delay_seconds),
+    )
+
+
+async def remove_autorole(guild_id: int, role_id: int) -> bool:
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute("DELETE FROM autoroles WHERE guild_id=? AND role_id=?", (guild_id, role_id))
+        await db.commit()
+        return cur.rowcount > 0
+
+
+# ---------------------------------------------------------------------------
+# Starboard
+# ---------------------------------------------------------------------------
+
+async def get_starboard_config(guild_id: int) -> dict:
+    row = await _fetchone("SELECT * FROM starboard_config WHERE guild_id = ?", (guild_id,))
+    return dict(row) if row else {"guild_id": guild_id, "channel_id": None, "threshold": 3, "emoji": "⭐", "enabled": 1}
+
+
+async def set_starboard_config(guild_id: int, **kwargs):
+    allowed = {"channel_id", "threshold", "emoji", "enabled"}
+    kwargs = {k: v for k, v in kwargs.items() if k in allowed}
+    if not kwargs:
+        return
+    cols = ", ".join(kwargs.keys())
+    placeholders = ", ".join("?" for _ in kwargs)
+    updates = ", ".join(f"{k}=excluded.{k}" for k in kwargs)
+    await _execute(
+        f"INSERT INTO starboard_config (guild_id, {cols}) VALUES (?, {placeholders}) "
+        f"ON CONFLICT(guild_id) DO UPDATE SET {updates}",
+        (guild_id, *kwargs.values()),
+    )
+
+
+async def get_starboard_entry(guild_id: int, original_message_id: int) -> Optional[dict]:
+    return await _fetchone(
+        "SELECT * FROM starboard_entries WHERE guild_id=? AND original_message_id=?",
+        (guild_id, original_message_id),
+    )
+
+
+async def set_starboard_entry(guild_id: int, original_message_id: int, starboard_message_id: int):
+    await _execute(
+        "INSERT OR REPLACE INTO starboard_entries (guild_id, original_message_id, starboard_message_id) VALUES (?,?,?)",
+        (guild_id, original_message_id, starboard_message_id),
+    )
+
+
+async def delete_starboard_entry(guild_id: int, original_message_id: int):
+    await _execute(
+        "DELETE FROM starboard_entries WHERE guild_id=? AND original_message_id=?",
+        (guild_id, original_message_id),
+    )
+
+
+# ---------------------------------------------------------------------------
+# XP / Levels
+# ---------------------------------------------------------------------------
+
+async def get_xp_config(guild_id: int) -> dict:
+    row = await _fetchone("SELECT * FROM xp_config WHERE guild_id = ?", (guild_id,))
+    return dict(row) if row else {
+        "guild_id": guild_id, "enabled": 1, "xp_min": 15, "xp_max": 25,
+        "cooldown_seconds": 60, "levelup_channel_id": None,
+        "levelup_message": "GG {mention}, you reached **level {level}**! 🎉",
+    }
+
+
+async def set_xp_config(guild_id: int, **kwargs):
+    allowed = {"enabled", "xp_min", "xp_max", "cooldown_seconds", "levelup_channel_id", "levelup_message"}
+    kwargs = {k: v for k, v in kwargs.items() if k in allowed}
+    if not kwargs:
+        return
+    cols = ", ".join(kwargs.keys())
+    placeholders = ", ".join("?" for _ in kwargs)
+    updates = ", ".join(f"{k}=excluded.{k}" for k in kwargs)
+    await _execute(
+        f"INSERT INTO xp_config (guild_id, {cols}) VALUES (?, {placeholders}) "
+        f"ON CONFLICT(guild_id) DO UPDATE SET {updates}",
+        (guild_id, *kwargs.values()),
+    )
+
+
+async def get_user_xp(guild_id: int, user_id: int) -> dict:
+    row = await _fetchone("SELECT * FROM user_xp WHERE guild_id=? AND user_id=?", (guild_id, user_id))
+    return dict(row) if row else {"guild_id": guild_id, "user_id": user_id, "xp": 0, "level": 0, "last_xp_at": None}
+
+
+async def add_user_xp(guild_id: int, user_id: int, amount: int) -> dict:
+    """Add XP and return updated row."""
+    await _execute(
+        """INSERT INTO user_xp (guild_id, user_id, xp, last_xp_at)
+           VALUES (?,?,?,datetime('now'))
+           ON CONFLICT(guild_id, user_id) DO UPDATE SET
+           xp=xp+?, last_xp_at=datetime('now')""",
+        (guild_id, user_id, amount, amount),
+    )
+    return await get_user_xp(guild_id, user_id)
+
+
+async def set_user_xp(guild_id: int, user_id: int, xp: int, level: int):
+    await _execute(
+        """INSERT INTO user_xp (guild_id, user_id, xp, level)
+           VALUES (?,?,?,?)
+           ON CONFLICT(guild_id, user_id) DO UPDATE SET xp=?, level=?""",
+        (guild_id, user_id, xp, level, xp, level),
+    )
+
+
+async def update_user_level(guild_id: int, user_id: int, level: int):
+    await _execute(
+        "UPDATE user_xp SET level=? WHERE guild_id=? AND user_id=?",
+        (level, guild_id, user_id),
+    )
+
+
+async def get_xp_leaderboard(guild_id: int, limit: int = 10) -> list[dict]:
+    return await _fetchall(
+        "SELECT * FROM user_xp WHERE guild_id=? ORDER BY xp DESC LIMIT ?",
+        (guild_id, limit),
+    )
+
+
+async def get_level_roles(guild_id: int) -> list[dict]:
+    return await _fetchall("SELECT * FROM level_roles WHERE guild_id=? ORDER BY level", (guild_id,))
+
+
+async def add_level_role(guild_id: int, level: int, role_id: int):
+    await _execute(
+        "INSERT OR REPLACE INTO level_roles (guild_id, level, role_id) VALUES (?,?,?)",
+        (guild_id, level, role_id),
+    )
+
+
+async def remove_level_role(guild_id: int, level: int) -> bool:
+    async with aiosqlite.connect(DB_PATH) as db:
+        cur = await db.execute("DELETE FROM level_roles WHERE guild_id=? AND level=?", (guild_id, level))
+        await db.commit()
+        return cur.rowcount > 0

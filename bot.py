@@ -28,6 +28,10 @@ COGS = [
     # Added from SentinelBot merge
     "cogs.verification",
     "cogs.admin",
+    # New features
+    "cogs.join_leave",
+    "cogs.starboard",
+    "cogs.levels",
 ]
 
 

@@ -185,6 +185,67 @@ CATEGORY_EMBEDS = {
         ),
         color=0xFFA500,
     ),
+    "welcome": lambda: discord.Embed(
+        title="👋 Join / Leave & Autoroles",
+        description=(
+            "**Join Announcements**\n"
+            "`/joinmsg setup <channel>` — set channel and open message editor\n"
+            "`/joinmsg message` — edit the join message\n"
+            "`/joinmsg toggle <true/false>` — enable or disable\n"
+            "`/joinmsg test` — send a test message\n"
+            "`/joinmsg variables` — show available message variables\n\n"
+            "**Leave Announcements**\n"
+            "`/leavemsg setup <channel>` — set channel and open message editor\n"
+            "`/leavemsg message` — edit the leave message\n"
+            "`/leavemsg toggle <true/false>` — enable or disable\n"
+            "`/leavemsg test` — send a test message\n\n"
+            "**Autoroles**\n"
+            "`/autorole add <role> [delay]` — assign role on join (optional delay in seconds)\n"
+            "`/autorole remove <role>` — remove an autorole\n"
+            "`/autorole list` — view configured autoroles\n\n"
+            "**Message variables:** `{mention}` `{user}` `{server}` `{count}` `{id}`"
+        ),
+        color=0x57F287,
+    ),
+    "starboard": lambda: discord.Embed(
+        title="⭐ Starboard",
+        description=(
+            "Starboard reposts popular messages to a dedicated channel\n"
+            "when they reach a set number of reactions.\n\n"
+            "`/starboard setup <channel>` — set the starboard channel\n"
+            "`/starboard threshold <count>` — set minimum reactions needed (1–25)\n"
+            "`/starboard emoji <emoji>` — choose which emoji triggers it (default ⭐)\n"
+            "`/starboard toggle <true/false>` — enable or disable\n"
+            "`/starboard status` — view current configuration\n\n"
+            "When reactions drop below the threshold, the starboard post\n"
+            "is automatically removed."
+        ),
+        color=0xFFAC33,
+    ),
+    "levels": lambda: discord.Embed(
+        title="🏆 XP / Levels ⭐ Premium",
+        description=(
+            "Members earn XP by chatting. Each level-up is announced\n"
+            "and optional role rewards are automatically assigned.\n\n"
+            "**Member Commands**\n"
+            "`/level [member]` — view level, XP, and progress bar\n"
+            "`/leaderboard` — top 10 members by XP\n\n"
+            "**Level Roles**\n"
+            "`/levelroles add <level> <role>` — award a role at a level\n"
+            "`/levelroles remove <level>` — remove a level role reward\n"
+            "`/levelroles list` — view all level role rewards\n\n"
+            "**Admin / XP Management**\n"
+            "`/xp give <member> <amount>` — add XP to a member\n"
+            "`/xp set <member> <amount>` — set XP directly\n"
+            "`/xp reset <member>` — wipe a member's XP\n\n"
+            "**Config**\n"
+            "`/levelconfig channel [channel]` — set level-up announcement channel\n"
+            "`/levelconfig cooldown <seconds>` — set XP cooldown (10–600s)\n"
+            "`/levelconfig toggle <true/false>` — enable or disable the system\n\n"
+            "Requires **Aegixa Premium**."
+        ),
+        color=0xFFD700,
+    ),
     "premium": lambda: discord.Embed(
         title="⭐ Premium",
         description=(
@@ -195,7 +256,8 @@ CATEGORY_EMBEDS = {
             "`/filters toggle phishing true` — scan every message for scam links\n"
             "`/verification setup` — hold new members in a gate until verified\n"
             "`/verification toggle` — enable or disable the gate\n"
-            "`/verification status` — view current verification config\n\n"
+            "`/verification status` — view current verification config\n"
+            "`/level` `/leaderboard` — XP/Levels system\n\n"
             f"[Buy a key]({PREMIUM_URL})  |  [Support]({SUPPORT_SERVER})\n\n"
             "**Owner-only commands**\n"
             "`/genkey <tier> <days>` — generate a license key\n"
@@ -214,7 +276,10 @@ SELECT_OPTIONS = [
     discord.SelectOption(label="Role Tools",          value="roles",       emoji="🎭"),
     discord.SelectOption(label="Utility",             value="utility",     emoji="🔧"),
     discord.SelectOption(label="Giveaways & Invites", value="events",      emoji="🎉"),
-    discord.SelectOption(label="Premium",             value="premium",     emoji="⭐"),
+    discord.SelectOption(label="Join / Leave & Autoroles", value="welcome", emoji="👋"),
+    discord.SelectOption(label="Starboard",           value="starboard",   emoji="⭐"),
+    discord.SelectOption(label="XP / Levels",         value="levels",      emoji="🏆"),
+    discord.SelectOption(label="Premium",             value="premium",     emoji="💎"),
 ]
 
 
