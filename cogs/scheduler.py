@@ -76,6 +76,11 @@ class Scheduler(commands.Cog):
     )
     @is_staff()
     async def schedule(self, interaction: discord.Interaction, when: str, channel: discord.TextChannel = None):
+        if not await db.get_feature(interaction.guild_id, "scheduler"):
+            return await interaction.response.send_message(
+                embed=error_embed("Scheduled messages are not enabled. An admin can enable them via the dashboard."),
+                ephemeral=True,
+            )
         delay = parse_duration(when)
         if delay is None or delay < 60:
             return await interaction.response.send_message(
@@ -91,6 +96,10 @@ class Scheduler(commands.Cog):
     @app_commands.command(name="schedulelist", description="List pending scheduled messages in this server")
     @is_staff()
     async def schedule_list(self, interaction: discord.Interaction):
+        if not await db.get_feature(interaction.guild_id, "scheduler"):
+            return await interaction.response.send_message(
+                embed=error_embed("Scheduled messages are not enabled."), ephemeral=True
+            )
         msgs = await db.get_scheduled_messages(interaction.guild_id)
         if not msgs:
             return await interaction.response.send_message(

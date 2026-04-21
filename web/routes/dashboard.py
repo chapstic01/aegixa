@@ -9,9 +9,10 @@ from config import PREMIUM_URL, SUPPORT_SERVER
 
 dashboard = Blueprint("dashboard", __name__)
 
+_client_id = os.getenv("CLIENT_ID", "")
 INVITE_URL = os.getenv(
     "BOT_INVITE_URL",
-    "https://discord.com/oauth2/authorize?permissions=8&scope=bot%20applications.commands",
+    f"https://discord.com/oauth2/authorize?client_id={_client_id}&permissions=8&scope=bot%20applications.commands",
 )
 PREMIUM_PRICE = os.getenv("PREMIUM_PRICE", "2.99")
 

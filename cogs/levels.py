@@ -43,7 +43,7 @@ def _xp_progress(total_xp: int) -> tuple[int, int, int]:
 
 
 async def _is_premium(guild_id: int) -> bool:
-    return await db.get_feature(guild_id, "levels")
+    return await db.is_premium(guild_id)
 
 
 # ---------------------------------------------------------------------------

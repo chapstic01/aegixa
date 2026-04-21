@@ -37,6 +37,7 @@ COGS = [
     "cogs.server_stats",
     "cogs.custom_commands",
     "cogs.scheduler",
+    "cogs.owner_log",
 ]
 
 

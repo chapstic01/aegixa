@@ -84,6 +84,10 @@ class TicketPanelView(discord.ui.View):
         custom_id="aegixa:open_ticket",
     )
     async def open_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await db.get_feature(interaction.guild_id, "tickets"):
+            return await interaction.response.send_message(
+                embed=error_embed("The ticket system is not enabled on this server."), ephemeral=True
+            )
         cfg = await db.get_ticket_config(interaction.guild_id)
         if not cfg["enabled"]:
             return await interaction.response.send_message(
@@ -315,6 +319,11 @@ class TicketGroup(app_commands.Group):
     @app_commands.describe(channel="Channel to post the panel in (defaults to current)")
     @is_admin()
     async def ticket_panel(self, interaction: discord.Interaction, channel: discord.TextChannel = None):
+        if not await db.get_feature(interaction.guild_id, "tickets"):
+            return await interaction.response.send_message(
+                embed=error_embed("Enable the Ticket System feature first via the dashboard or `/feature enable tickets`."),
+                ephemeral=True,
+            )
         ch = channel or interaction.channel
         view = TicketPanelView()
         await ch.send(embed=_panel_embed(), view=view)

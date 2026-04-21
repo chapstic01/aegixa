@@ -99,6 +99,11 @@ class Polls(commands.Cog):
     @app_commands.describe(channel="Channel to post the poll in (defaults to current)")
     @is_staff()
     async def poll(self, interaction: discord.Interaction, channel: discord.TextChannel = None):
+        if not await db.get_feature(interaction.guild_id, "polls"):
+            return await interaction.response.send_message(
+                embed=error_embed("Polls are not enabled. An admin can enable them via the dashboard or `/features`."),
+                ephemeral=True,
+            )
         target = channel or interaction.channel
         await interaction.response.send_modal(PollModal(target))
 
