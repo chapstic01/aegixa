@@ -530,3 +530,188 @@ def delete_reaction_role(guild_id, message_id, emoji):
         return jsonify({"error": "Forbidden"}), 403
     removed = run_async(db.remove_reaction_role(message_id, emoji))
     return jsonify({"ok": removed})
+
+
+# ---------------------------------------------------------------------------
+# Join / Leave config
+# ---------------------------------------------------------------------------
+
+@api.get("/guild/<int:guild_id>/joinleave")
+@login_required
+def get_joinleave(guild_id):
+    if not _check_guild_access(guild_id):
+        return jsonify({"error": "Forbidden"}), 403
+    cfg = run_async(db.get_join_leave_config(guild_id))
+    return jsonify({
+        "join_channel_id": str(cfg["join_channel_id"]) if cfg["join_channel_id"] else "",
+        "join_enabled": bool(cfg["join_enabled"]),
+        "leave_channel_id": str(cfg["leave_channel_id"]) if cfg["leave_channel_id"] else "",
+        "leave_enabled": bool(cfg["leave_enabled"]),
+        "dm_enabled": bool(cfg.get("dm_enabled", 0)),
+    })
+
+
+@api.post("/guild/<int:guild_id>/joinleave")
+@login_required
+def save_joinleave(guild_id):
+    if not _check_guild_access(guild_id):
+        return jsonify({"error": "Forbidden"}), 403
+    data = request.json or {}
+    kwargs = {}
+    for field in ("join_channel_id", "leave_channel_id"):
+        if field in data:
+            kwargs[field] = int(data[field]) if data[field] else None
+    for field in ("join_enabled", "leave_enabled", "dm_enabled"):
+        if field in data:
+            kwargs[field] = 1 if data[field] else 0
+    run_async(db.set_join_leave_config(guild_id, **kwargs))
+    return jsonify({"ok": True})
+
+
+# ---------------------------------------------------------------------------
+# Tickets
+# ---------------------------------------------------------------------------
+
+@api.get("/guild/<int:guild_id>/tickets/config")
+@login_required
+def get_ticket_config(guild_id):
+    if not _check_guild_access(guild_id):
+        return jsonify({"error": "Forbidden"}), 403
+    cfg = run_async(db.get_ticket_config(guild_id))
+    return jsonify({
+        "support_role_id": str(cfg["support_role_id"]) if cfg["support_role_id"] else "",
+        "log_channel_id": str(cfg["log_channel_id"]) if cfg["log_channel_id"] else "",
+        "category_id": str(cfg["category_id"]) if cfg["category_id"] else "",
+        "enabled": bool(cfg["enabled"]),
+    })
+
+
+@api.post("/guild/<int:guild_id>/tickets/config")
+@login_required
+def save_ticket_config(guild_id):
+    if not _check_guild_access(guild_id):
+        return jsonify({"error": "Forbidden"}), 403
+    data = request.json or {}
+    kwargs = {}
+    for field in ("support_role_id", "log_channel_id", "category_id"):
+        if field in data:
+            kwargs[field] = int(data[field]) if data[field] else None
+    if "enabled" in data:
+        kwargs["enabled"] = 1 if data["enabled"] else 0
+    run_async(db.set_ticket_config(guild_id, **kwargs))
+    return jsonify({"ok": True})
+
+
+@api.get("/guild/<int:guild_id>/tickets/open")
+@login_required
+def get_open_tickets(guild_id):
+    if not _check_guild_access(guild_id):
+        return jsonify({"error": "Forbidden"}), 403
+    tickets = run_async(db.get_open_tickets(guild_id))
+    bot = current_app.bot
+    guild = bot.get_guild(guild_id)
+    result = []
+    for t in tickets:
+        member = guild.get_member(t["user_id"]) if guild else None
+        ch = guild.get_channel(t["channel_id"]) if guild else None
+        result.append({
+            "id": t["id"],
+            "ticket_number": t["ticket_number"],
+            "user_name": str(member) if member else str(t["user_id"]),
+            "channel_name": ch.name if ch else "deleted",
+            "claimed_by": t.get("claimed_by"),
+            "created_at": t["created_at"],
+        })
+    return jsonify(result)
+
+
+# ---------------------------------------------------------------------------
+# Starboard
+# ---------------------------------------------------------------------------
+
+@api.get("/guild/<int:guild_id>/starboard")
+@login_required
+def get_starboard(guild_id):
+    if not _check_guild_access(guild_id):
+        return jsonify({"error": "Forbidden"}), 403
+    cfg = run_async(db.get_starboard_config(guild_id))
+    return jsonify({
+        "channel_id": str(cfg["channel_id"]) if cfg["channel_id"] else "",
+        "threshold": cfg["threshold"],
+        "emoji": cfg["emoji"],
+        "enabled": bool(cfg["enabled"]),
+    })
+
+
+@api.post("/guild/<int:guild_id>/starboard")
+@login_required
+def save_starboard(guild_id):
+    if not _check_guild_access(guild_id):
+        return jsonify({"error": "Forbidden"}), 403
+    data = request.json or {}
+    kwargs = {}
+    if "channel_id" in data:
+        kwargs["channel_id"] = int(data["channel_id"]) if data["channel_id"] else None
+    if "threshold" in data:
+        kwargs["threshold"] = max(1, min(25, int(data["threshold"])))
+    if "emoji" in data and data["emoji"]:
+        kwargs["emoji"] = data["emoji"]
+    if "enabled" in data:
+        kwargs["enabled"] = 1 if data["enabled"] else 0
+    run_async(db.set_starboard_config(guild_id, **kwargs))
+    return jsonify({"ok": True})
+
+
+# ---------------------------------------------------------------------------
+# Custom commands
+# ---------------------------------------------------------------------------
+
+@api.get("/guild/<int:guild_id>/customcmds")
+@login_required
+def get_custom_cmds(guild_id):
+    if not _check_guild_access(guild_id):
+        return jsonify({"error": "Forbidden"}), 403
+    cmds = run_async(db.get_custom_commands(guild_id))
+    return jsonify([dict(c) for c in cmds])
+
+
+@api.delete("/guild/<int:guild_id>/customcmds/<name>")
+@login_required
+def delete_custom_cmd(guild_id, name):
+    if not _check_guild_access(guild_id):
+        return jsonify({"error": "Forbidden"}), 403
+    removed = run_async(db.delete_custom_command(guild_id, name))
+    return jsonify({"ok": removed})
+
+
+# ---------------------------------------------------------------------------
+# Scheduled messages
+# ---------------------------------------------------------------------------
+
+@api.get("/guild/<int:guild_id>/scheduled")
+@login_required
+def get_scheduled(guild_id):
+    if not _check_guild_access(guild_id):
+        return jsonify({"error": "Forbidden"}), 403
+    msgs = run_async(db.get_scheduled_messages(guild_id))
+    bot = current_app.bot
+    guild = bot.get_guild(guild_id)
+    result = []
+    for m in msgs:
+        ch = guild.get_channel(m["channel_id"]) if guild else None
+        result.append({
+            "id": m["id"],
+            "channel_name": f"#{ch.name}" if ch else f"#{m['channel_id']}",
+            "content": m["content"][:80] + ("…" if len(m["content"]) > 80 else ""),
+            "send_at": m["send_at"],
+        })
+    return jsonify(result)
+
+
+@api.delete("/guild/<int:guild_id>/scheduled/<int:msg_id>")
+@login_required
+def cancel_scheduled(guild_id, msg_id):
+    if not _check_guild_access(guild_id):
+        return jsonify({"error": "Forbidden"}), 403
+    removed = run_async(db.delete_scheduled_message(msg_id, guild_id))
+    return jsonify({"ok": removed})

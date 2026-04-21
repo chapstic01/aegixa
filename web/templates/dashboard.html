@@ -26,6 +26,11 @@
   <button class="tab" data-tab="giveaways">Giveaways</button>
   <button class="tab" data-tab="reactionroles">Reaction Roles</button>
   <button class="tab" data-tab="sticky">Sticky</button>
+  <button class="tab" data-tab="joinleave">Join / Leave</button>
+  <button class="tab" data-tab="tickets">Tickets</button>
+  <button class="tab" data-tab="starboard">Starboard</button>
+  <button class="tab" data-tab="customcmds">Custom Cmds</button>
+  <button class="tab" data-tab="schedule">Scheduled</button>
   {% if is_bot_owner %}
   <button class="tab" data-tab="console-link">Console</button>
   {% endif %}
@@ -201,6 +206,72 @@
   <div class="card">
     <h2>Sticky Messages</h2>
     <div id="sticky-list"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- JOIN/LEAVE TAB -->
+<div id="tab-joinleave" class="tab-content hidden">
+  <div class="card">
+    <h2>Join / Leave Announcements</h2>
+    <p class="text-muted">Configure the channels and messages sent when members join or leave. Use <code>/joinmsg</code> and <code>/leavemsg</code> in Discord for message editing.</p>
+    <div id="joinleave-form" class="form-grid">
+      <div class="spinner"></div>
+    </div>
+    <button class="btn btn-primary" onclick="saveJoinLeave()">Save</button>
+  </div>
+  <div class="card" style="margin-top:1rem">
+    <h2>Welcome DM</h2>
+    <p class="text-muted">Send a private DM to new members when they join. Edit the message with <code>/welcomedm setup</code> in Discord.</p>
+    <div id="welcomedm-form">
+      <div class="spinner"></div>
+    </div>
+    <button class="btn btn-primary" style="margin-top:.75rem" onclick="saveWelcomeDM()">Save</button>
+  </div>
+</div>
+
+<!-- TICKETS TAB -->
+<div id="tab-tickets" class="tab-content hidden">
+  <div class="card">
+    <h2>Ticket System</h2>
+    <p class="text-muted">Configure the ticket system. Post the ticket panel with <code>/ticket panel</code> in Discord.</p>
+    <div id="tickets-form" class="form-grid">
+      <div class="spinner"></div>
+    </div>
+    <button class="btn btn-primary" onclick="saveTickets()">Save</button>
+  </div>
+  <div class="card" style="margin-top:1rem">
+    <h2>Open Tickets</h2>
+    <div id="tickets-list"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- STARBOARD TAB -->
+<div id="tab-starboard" class="tab-content hidden">
+  <div class="card">
+    <h2>Starboard</h2>
+    <p class="text-muted">Repost popular messages to a dedicated channel when they hit the reaction threshold.</p>
+    <div id="starboard-form" class="form-grid">
+      <div class="spinner"></div>
+    </div>
+    <button class="btn btn-primary" onclick="saveStarboard()">Save</button>
+  </div>
+</div>
+
+<!-- CUSTOM COMMANDS TAB -->
+<div id="tab-customcmds" class="tab-content hidden">
+  <div class="card">
+    <h2>Custom Commands</h2>
+    <p class="text-muted">Members trigger these by typing <code>!commandname</code> in chat. Add commands with <code>/cc add</code> in Discord.</p>
+    <div id="customcmds-list"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- SCHEDULED MESSAGES TAB -->
+<div id="tab-schedule" class="tab-content hidden">
+  <div class="card">
+    <h2>Scheduled Messages</h2>
+    <p class="text-muted">Messages pending delivery. Schedule new ones with <code>/schedule</code> in Discord.</p>
+    <div id="schedule-list"><div class="spinner"></div></div>
   </div>
 </div>
 

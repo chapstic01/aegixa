@@ -464,3 +464,215 @@ async function loadSticky() {
   const list = document.getElementById('sticky-list');
   list.innerHTML = '<p class="text-muted">Sticky messages are managed via <code>/sticky set</code> and <code>/sticky clear</code> in Discord. Check each channel to see active stickies.</p>';
 }
+
+// ---------------------------------------------------------------------------
+// JOIN / LEAVE TAB
+// ---------------------------------------------------------------------------
+
+async function loadJoinLeave() {
+  const cfg = await apiFetch(`${API}/joinleave`);
+
+  document.getElementById('joinleave-form').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">Join Channel</label>
+      ${channelSelect('join_channel', cfg.join_channel_id || '')}
+    </div>
+    <div class="form-group">
+      <label class="form-label">Join Announcements</label>
+      <label class="switch">
+        <input type="checkbox" id="join-enabled" ${cfg.join_enabled ? 'checked' : ''}/>
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Leave Channel</label>
+      ${channelSelect('leave_channel', cfg.leave_channel_id || '')}
+    </div>
+    <div class="form-group">
+      <label class="form-label">Leave Announcements</label>
+      <label class="switch">
+        <input type="checkbox" id="leave-enabled" ${cfg.leave_enabled ? 'checked' : ''}/>
+        <span class="slider"></span>
+      </label>
+    </div>`;
+
+  document.getElementById('welcomedm-form').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">Send Welcome DM to New Members</label>
+      <label class="switch">
+        <input type="checkbox" id="dm-enabled" ${cfg.dm_enabled ? 'checked' : ''}/>
+        <span class="slider"></span>
+      </label>
+    </div>
+    <p class="text-muted small">Edit the DM message with <code>/welcomedm setup</code> in Discord.</p>`;
+}
+
+async function saveJoinLeave() {
+  const form = document.getElementById('joinleave-form');
+  const body = {
+    join_channel_id: form.querySelector('[name="join_channel"]')?.value || null,
+    join_enabled: document.getElementById('join-enabled')?.checked || false,
+    leave_channel_id: form.querySelector('[name="leave_channel"]')?.value || null,
+    leave_enabled: document.getElementById('leave-enabled')?.checked || false,
+  };
+  const res = await apiFetch(`${API}/joinleave`, { method: 'POST', body: JSON.stringify(body) });
+  res.ok ? toast('Join/Leave config saved.') : toast('Failed to save.', 'error');
+}
+
+async function saveWelcomeDM() {
+  const enabled = document.getElementById('dm-enabled')?.checked || false;
+  const res = await apiFetch(`${API}/joinleave`, { method: 'POST', body: JSON.stringify({ dm_enabled: enabled }) });
+  res.ok ? toast('Welcome DM setting saved.') : toast('Failed to save.', 'error');
+}
+
+// ---------------------------------------------------------------------------
+// TICKETS TAB
+// ---------------------------------------------------------------------------
+
+async function loadTickets() {
+  const [cfg, tickets] = await Promise.all([
+    apiFetch(`${API}/tickets/config`),
+    apiFetch(`${API}/tickets/open`),
+  ]);
+
+  document.getElementById('tickets-form').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">Support Role</label>
+      ${roleSelect('ticket-support-role', cfg.support_role_id || '')}
+    </div>
+    <div class="form-group">
+      <label class="form-label">Transcript Log Channel</label>
+      ${channelSelect('ticket-log-channel', cfg.log_channel_id || '')}
+    </div>
+    <div class="form-group">
+      <label class="form-label">Ticket System Enabled</label>
+      <label class="switch">
+        <input type="checkbox" id="ticket-enabled" ${cfg.enabled ? 'checked' : ''}/>
+        <span class="slider"></span>
+      </label>
+    </div>`;
+
+  const list = document.getElementById('tickets-list');
+  if (!tickets.length) {
+    list.innerHTML = '<p class="text-muted">No open tickets.</p>';
+  } else {
+    list.innerHTML = tickets.map(t => `
+      <div class="toggle-item">
+        <div>
+          <div class="toggle-label">#${String(t.ticket_number).padStart(4,'0')} — ${t.user_name}</div>
+          <div class="text-muted small">#${t.channel_name} · Opened ${(t.created_at||'').slice(0,16)}</div>
+        </div>
+      </div>`).join('');
+  }
+}
+
+async function saveTickets() {
+  const body = {
+    support_role_id: document.getElementById('ticket-support-role')?.value || null,
+    log_channel_id: document.querySelector('[name="ticket-log-channel"]')?.value || null,
+    enabled: document.getElementById('ticket-enabled')?.checked || false,
+  };
+  const res = await apiFetch(`${API}/tickets/config`, { method: 'POST', body: JSON.stringify(body) });
+  res.ok ? toast('Ticket config saved.') : toast('Failed to save.', 'error');
+}
+
+// ---------------------------------------------------------------------------
+// STARBOARD TAB
+// ---------------------------------------------------------------------------
+
+async function loadStarboard() {
+  const cfg = await apiFetch(`${API}/starboard`);
+  document.getElementById('starboard-form').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">Starboard Channel</label>
+      ${channelSelect('sb-channel', cfg.channel_id || '')}
+    </div>
+    <div class="form-group">
+      <label class="form-label">Reaction Threshold</label>
+      <input type="number" id="sb-threshold" class="input" value="${cfg.threshold || 3}" min="1" max="25" style="max-width:100px"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Reaction Emoji</label>
+      <input type="text" id="sb-emoji" class="input" value="${cfg.emoji || '⭐'}" maxlength="8" style="max-width:100px"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Enabled</label>
+      <label class="switch">
+        <input type="checkbox" id="sb-enabled" ${cfg.enabled ? 'checked' : ''}/>
+        <span class="slider"></span>
+      </label>
+    </div>`;
+}
+
+async function saveStarboard() {
+  const form = document.getElementById('starboard-form');
+  const body = {
+    channel_id: form.querySelector('[name="sb-channel"]')?.value || null,
+    threshold: parseInt(document.getElementById('sb-threshold')?.value) || 3,
+    emoji: document.getElementById('sb-emoji')?.value || '⭐',
+    enabled: document.getElementById('sb-enabled')?.checked || false,
+  };
+  const res = await apiFetch(`${API}/starboard`, { method: 'POST', body: JSON.stringify(body) });
+  res.ok ? toast('Starboard saved.') : toast('Failed to save.', 'error');
+}
+
+// ---------------------------------------------------------------------------
+// CUSTOM COMMANDS TAB
+// ---------------------------------------------------------------------------
+
+async function loadCustomCmds() {
+  const cmds = await apiFetch(`${API}/customcmds`);
+  const list = document.getElementById('customcmds-list');
+  if (!cmds.length) {
+    list.innerHTML = '<p class="text-muted">No custom commands. Use <code>/cc add</code> in Discord to create one.</p>';
+    return;
+  }
+  list.innerHTML = cmds.map(c => `
+    <div class="toggle-item">
+      <div>
+        <span class="toggle-label"><code>!${c.name}</code></span>
+        <div class="text-muted small">${c.response.slice(0,80)}${c.response.length > 80 ? '…' : ''}</div>
+      </div>
+      <button class="btn btn-sm btn-danger" onclick="deleteCustomCmd('${c.name}')">Remove</button>
+    </div>`).join('');
+}
+
+async function deleteCustomCmd(name) {
+  const res = await apiFetch(`${API}/customcmds/${encodeURIComponent(name)}`, { method: 'DELETE' });
+  res.ok ? (toast(`!${name} removed.`), loadCustomCmds()) : toast('Failed.', 'error');
+}
+
+// ---------------------------------------------------------------------------
+// SCHEDULED MESSAGES TAB
+// ---------------------------------------------------------------------------
+
+async function loadSchedule() {
+  const msgs = await apiFetch(`${API}/scheduled`);
+  const list = document.getElementById('schedule-list');
+  if (!msgs.length) {
+    list.innerHTML = '<p class="text-muted">No pending scheduled messages. Use <code>/schedule</code> in Discord.</p>';
+    return;
+  }
+  list.innerHTML = msgs.map(m => `
+    <div class="toggle-item">
+      <div>
+        <span class="toggle-label">${m.channel_name}</span>
+        <div class="text-muted small">Sends at ${m.send_at} — ${m.content}</div>
+      </div>
+      <button class="btn btn-sm btn-danger" onclick="cancelScheduled(${m.id})">Cancel</button>
+    </div>`).join('');
+}
+
+async function cancelScheduled(id) {
+  const res = await apiFetch(`${API}/scheduled/${id}`, { method: 'DELETE' });
+  res.ok ? (toast('Scheduled message cancelled.'), loadSchedule()) : toast('Failed.', 'error');
+}
+
+// Register new tab loaders
+Object.assign(tabLoaders, {
+  joinleave:  loadJoinLeave,
+  tickets:    loadTickets,
+  starboard:  loadStarboard,
+  customcmds: loadCustomCmds,
+  schedule:   loadSchedule,
+});

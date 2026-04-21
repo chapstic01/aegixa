@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Aegixa — Discord Security & Moderation Bot</title>
-  <meta name="description" content="Aegixa protects your Discord server with automod, anti-raid, phishing detection, verification gates, logging, and more. Free to add."/>
+  <title>Aegixa — All-in-One Discord Bot</title>
+  <meta name="description" content="Aegixa is an all-in-one Discord bot: moderation, automod, anti-raid, tickets, XP/levels, starboard, polls, custom commands, logging, and more. Free to add."/>
   <link rel="stylesheet" href="/static/css/style.css"/>
   <link rel="stylesheet" href="/static/css/landing.css"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -29,11 +29,11 @@
   <!-- HERO -->
   <section class="hero">
     <div class="hero-badge">Free to use &nbsp;·&nbsp; Premium available</div>
-    <h1 class="hero-title">Keep Your Server Safe.<br/>Without the Headache.</h1>
+    <h1 class="hero-title">One Bot.<br/>Everything You Need.</h1>
     <p class="hero-sub">
-      Aegixa is an all-in-one security and moderation bot. Automod, anti-raid,
-      phishing detection, 9 log channels, giveaways, sticky messages, and a full
-      moderation suite — set up in under a minute.
+      Aegixa replaces five bots in one. Moderation, automod, anti-raid, tickets,
+      XP levels, starboard, polls, custom commands, logging, giveaways — all in a single
+      bot with a web dashboard. Set up in under a minute.
     </p>
     <div class="hero-cta">
       <a class="btn btn-primary btn-xl" href="{{ invite_url }}" target="_blank" rel="noopener">
@@ -49,69 +49,111 @@
   <section class="section" id="features">
     <div class="section-inner">
       <div class="section-header">
-        <h2>Everything you need to run a safe server</h2>
-        <p>Configure once with <code>/setup</code> and Aegixa handles the rest.</p>
+        <h2>Replace five bots with one</h2>
+        <p>Everything works out of the box. Configure once with <code>/setup</code> and Aegixa handles the rest.</p>
       </div>
       <div class="feature-grid">
 
         <div class="feature-card">
           <div class="feature-icon">🔨</div>
           <h3>Full Moderation Suite</h3>
-          <p>Ban, kick, mute, temp-ban, warn, purge, nickname management, slowmode, channel lock — all as slash commands with reason logging.</p>
+          <p>Ban, kick, mute, temp-ban, warn, purge, nickname management, slowmode, channel lock — all as slash commands with full reason logging.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon">🤖</div>
           <h3>Smart Automod</h3>
-          <p>9 content filters — spam, word, caps, links, invites, images, stickers, external emojis, rate limiting. Each filter has its own configurable punishment.</p>
+          <p>10 content filters — spam, words, caps, links, invites, images, stickers, external emojis, mass mentions, rate limiting. Per-filter punishments.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🎫</div>
+          <h3>Ticket System</h3>
+          <p>Clean embed-based support tickets. Members click a button, a private channel opens. Closes with a transcript and DM notification. No separate bot needed.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon">🛡️</div>
           <h3>Anti-Raid Protection</h3>
-          <p>Automatically detects join surges and locks the server down. Account-age gating blocks throwaway accounts the moment they join.</p>
+          <p>Auto-detects join surges and locks the server instantly. Account-age gating blocks throwaway accounts the moment they join.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon">📋</div>
           <h3>9 Log Channels</h3>
-          <p>Independent channels for general, spam, member joins/leaves, message edits, deletes, voice activity, role changes, channel edits, and mod actions.</p>
+          <p>Independent channels for member joins/leaves, edits, deletes, voice, role changes, channel edits, mod actions, invites, and bans.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon">🎭</div>
           <h3>Role Automation</h3>
-          <p>Auto swap or grant roles when members gain or lose other roles. Reaction roles let members self-assign with a click.</p>
+          <p>Auto-assign roles on join, swap or grant roles when members gain other roles. Reaction roles for self-assignment. All configurable.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">⭐</div>
+          <h3>Starboard</h3>
+          <p>Automatically repost popular messages to a starboard channel when they hit a reaction threshold. Keeps the best content visible.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Polls</h3>
+          <p>Create yes/no polls or multi-choice polls (up to 5 options) with a single slash command. Reactions are added automatically.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon">🎉</div>
-          <h3>Giveaways & Invite Tracking</h3>
-          <p>Run timed giveaways with automatic winner selection and rerolls. Invite tracking logs exactly which invite link each new member used.</p>
+          <h3>Giveaways & Invites</h3>
+          <p>Run timed giveaways with automatic winner selection. Invite tracking logs exactly which invite link each new member used.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">💬</div>
+          <h3>Custom Commands</h3>
+          <p>Define up to 50 custom <code>!commands</code> with any response. No coding required — create them right from Discord.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon">📌</div>
-          <h3>Sticky Messages</h3>
-          <p>Pin a message to the bottom of any channel. Aegixa re-posts it automatically every time someone sends a message, keeping it visible.</p>
+          <h3>Sticky Messages & Scheduling</h3>
+          <p>Pin messages to channel bottoms permanently. Schedule messages to be posted at any future time — perfect for announcements.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon">🖥️</div>
           <h3>Web Dashboard</h3>
-          <p>Manage your server's settings from a browser. Log in with Discord, pick your server, and configure everything without touching a command.</p>
+          <p>Manage log channels, filters, warnings, mod actions, role rules, giveaways, tickets and more from a browser without touching a command.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">👋</div>
+          <h3>Join / Leave & Welcome DM</h3>
+          <p>Custom join and leave messages with variables. Private welcome DMs to new members. Auto-assign roles on join with optional delay.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📈</div>
+          <h3>Server Stats Channels</h3>
+          <p>Live voice channels showing member count, online count, bot count, and channel count — auto-updated every 10 minutes.</p>
+        </div>
+
+        <div class="feature-card feature-card--premium">
+          <div class="feature-icon">🏆</div>
+          <h3>XP / Levels <span class="badge-premium">Premium</span></h3>
+          <p>Members earn XP by chatting and in voice. Level-up announcements, role rewards at milestones, leaderboard, admin XP management.</p>
         </div>
 
         <div class="feature-card feature-card--premium">
           <div class="feature-icon">🎣</div>
           <h3>Phishing Detection <span class="badge-premium">Premium</span></h3>
-          <p>Scans every message for known phishing domains, scam links, and malicious patterns. Deleted before your members can even click them.</p>
+          <p>Scans every message for known phishing domains and scam links. Deleted before your members can click them.</p>
         </div>
 
         <div class="feature-card feature-card--premium">
           <div class="feature-icon">✅</div>
           <h3>Verification Gate <span class="badge-premium">Premium</span></h3>
-          <p>Hold new members in a locked channel until they click Verify. Stops bot accounts and raiders before they can reach your community.</p>
+          <p>Hold new members in a locked channel until they click Verify. Stops bot accounts and raiders before they reach your community.</p>
         </div>
 
       </div>
@@ -123,7 +165,7 @@
     <div class="section-inner">
       <div class="section-header">
         <h2>Simple, honest pricing</h2>
-        <p>The free tier is genuinely useful. Premium unlocks the high-security extras.</p>
+        <p>The free tier replaces 4–5 separate bots. Premium adds the high-security extras.</p>
       </div>
       <div class="pricing-grid">
 
@@ -132,12 +174,18 @@
           <div class="pricing-price">£0 <span>/forever</span></div>
           <ul class="pricing-list">
             <li>✔ Full moderation suite</li>
-            <li>✔ 9 automod filters</li>
+            <li>✔ 10 automod filters</li>
             <li>✔ Anti-raid auto-detection</li>
             <li>✔ 9 independent log channels</li>
-            <li>✔ Role automation &amp; reaction roles</li>
+            <li>✔ Ticket system</li>
+            <li>✔ Starboard</li>
+            <li>✔ Polls &amp; custom commands</li>
+            <li>✔ Join/leave, autoroles, welcome DM</li>
             <li>✔ Giveaways &amp; invite tracking</li>
+            <li>✔ Server stats channels</li>
+            <li>✔ Scheduled messages</li>
             <li>✔ Sticky messages</li>
+            <li>✔ Role automation &amp; reaction roles</li>
             <li>✔ Web dashboard &amp; console</li>
           </ul>
           <a class="btn btn-ghost btn-lg" href="{{ invite_url }}" target="_blank" rel="noopener">Add to Discord</a>
@@ -149,6 +197,8 @@
           <div class="pricing-price">£{{ premium_price }} <span>/month</span></div>
           <ul class="pricing-list">
             <li>✔ Everything in Free</li>
+            <li>⭐ XP / Levels system</li>
+            <li>⭐ Voice XP tracking</li>
             <li>⭐ Phishing &amp; scam link detection</li>
             <li>⭐ Member verification gate</li>
             <li>⭐ Priority support</li>
