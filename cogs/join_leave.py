@@ -295,6 +295,8 @@ class JoinLeave(commands.Cog):
     async def on_member_join(self, member: discord.Member):
         if member.bot:
             return
+        if not await db.get_feature(member.guild.id, "join_leave"):
+            return
 
         cfg = await db.get_join_leave_config(member.guild.id)
 
@@ -334,6 +336,8 @@ class JoinLeave(commands.Cog):
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
         if member.bot:
+            return
+        if not await db.get_feature(member.guild.id, "join_leave"):
             return
         cfg = await db.get_join_leave_config(member.guild.id)
         if cfg["leave_enabled"] and cfg["leave_channel_id"]:

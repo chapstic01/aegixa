@@ -109,6 +109,8 @@ class Starboard(commands.Cog):
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         if not payload.guild_id:
             return
+        if not await db.get_feature(payload.guild_id, "starboard"):
+            return
 
         cfg = await db.get_starboard_config(payload.guild_id)
         if not cfg["enabled"] or not cfg["channel_id"]:
@@ -173,6 +175,8 @@ class Starboard(commands.Cog):
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
         if not payload.guild_id:
+            return
+        if not await db.get_feature(payload.guild_id, "starboard"):
             return
 
         cfg = await db.get_starboard_config(payload.guild_id)

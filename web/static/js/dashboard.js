@@ -124,27 +124,56 @@ async function saveLogs() {
 // ---------------------------------------------------------------------------
 
 const FEATURE_LABELS = {
-  spam_filter: 'Spam Filter', word_filter: 'Word Filter', image_block: 'Image & GIF Block',
-  sticker_block: 'Sticker Block', external_emoji_block: 'External Emoji Block',
-  logging: 'Logging', role_automation: 'Role Automation',
-  message_management: 'Message Management', automod: 'Automod (Master)',
-  dashboard: 'Dashboard', announcements: 'Announcements',
+  // Core (on by default)
+  automod:              '🤖 Automod (master toggle)',
+  logging:              '📋 Logging',
+  role_automation:      '🎭 Role Automation',
+  reaction_roles:       '🎭 Reaction Roles',
+  giveaways:            '🎉 Giveaways',
+  invite_tracking:      '🔗 Invite Tracking',
+  sticky_messages:      '📌 Sticky Messages',
+  message_management:   '✉️ Message Management',
+  raid_mode:            '🛡️ Anti-Raid',
+  // Opt-in (off by default)
+  join_leave:           '👋 Join / Leave & Autoroles',
+  tickets:              '🎫 Ticket System',
+  starboard:            '⭐ Starboard',
+  custom_commands:      '💬 Custom Commands',
+  server_stats:         '📊 Server Stats Channels',
+  polls:                '📊 Polls',
+  scheduler:            '⏰ Scheduled Messages',
+  levels:               '🏆 XP / Levels (Premium)',
 };
+
+const FEATURES_DEFAULT_OFF = new Set([
+  'join_leave','tickets','starboard','custom_commands',
+  'server_stats','polls','scheduler','levels',
+]);
 
 async function loadFeatures() {
   const data = await apiFetch(`${API}/features`);
   const list = document.getElementById('features-list');
-  list.innerHTML = Object.entries(data).map(([name, enabled]) => `
-    <div class="toggle-item">
-      <div>
+
+  const coreNames    = Object.keys(FEATURE_LABELS).filter(k => !FEATURES_DEFAULT_OFF.has(k));
+  const optinNames   = Object.keys(FEATURE_LABELS).filter(k => FEATURES_DEFAULT_OFF.has(k));
+
+  function featureRow(name) {
+    const enabled = name in data ? data[name] : !FEATURES_DEFAULT_OFF.has(name);
+    return `
+      <div class="toggle-item">
         <div class="toggle-label">${FEATURE_LABELS[name] || name}</div>
-      </div>
-      <label class="switch">
-        <input type="checkbox" ${enabled ? 'checked' : ''} onchange="setFeature('${name}', this.checked)"/>
-        <span class="slider"></span>
-      </label>
-    </div>
-  `).join('');
+        <label class="switch">
+          <input type="checkbox" ${enabled ? 'checked' : ''} onchange="setFeature('${name}', this.checked)"/>
+          <span class="slider"></span>
+        </label>
+      </div>`;
+  }
+
+  list.innerHTML =
+    `<p class="text-muted small" style="margin-bottom:.5rem">Core features — on by default</p>` +
+    coreNames.map(featureRow).join('') +
+    `<p class="text-muted small" style="margin:1rem 0 .5rem">Opt-in features — disabled until you enable them</p>` +
+    optinNames.map(featureRow).join('');
 }
 
 async function setFeature(name, enabled) {
@@ -159,9 +188,17 @@ async function setFeature(name, enabled) {
 // ---------------------------------------------------------------------------
 
 const FILTER_LABELS = {
-  spam: 'Spam (links + mass mentions)', word: 'Word Filter',
-  image: 'Image & GIF Block', sticker: 'Sticker Block',
-  external_emoji: 'External Emoji', link: 'Link Filter',
+  spam:           'Spam (links)',
+  word:           'Word Filter',
+  image:          'Image & GIF Block',
+  sticker:        'Sticker Block',
+  external_emoji: 'External Emoji',
+  link:           'Link Filter',
+  invite:         'Discord Invites',
+  caps:           'Excessive Caps',
+  rate_limit:     'Message Rate Limit',
+  mentions:       'Mass Mentions (5+)',
+  phishing:       '🔒 Phishing Detection (Premium)',
 };
 const PUNISHMENTS = ['none', 'warn', 'mute', 'kick', 'ban'];
 

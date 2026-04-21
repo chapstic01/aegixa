@@ -649,12 +649,27 @@ async def remove_role_grant(guild_id: int, rule_id: int) -> bool:
 # Features
 # ---------------------------------------------------------------------------
 
+# Features that are OFF by default — must be explicitly enabled
+_FEATURES_DEFAULT_OFF = frozenset({
+    "starboard",
+    "tickets",
+    "join_leave",
+    "custom_commands",
+    "server_stats",
+    "polls",
+    "scheduler",
+    "levels",
+})
+
+
 async def get_feature(guild_id: int, feature_name: str) -> bool:
     row = await _fetchone(
         "SELECT enabled FROM features WHERE guild_id=? AND feature_name=?",
         (guild_id, feature_name),
     )
-    return bool(row["enabled"]) if row else True  # default ON
+    if row:
+        return bool(row["enabled"])
+    return feature_name not in _FEATURES_DEFAULT_OFF
 
 
 async def set_feature(guild_id: int, feature_name: str, enabled: bool):

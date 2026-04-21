@@ -149,7 +149,8 @@ class ServerStats(commands.Cog):
     async def update_stats(self):
         for guild in self.bot.guilds:
             try:
-                await _update_guild_stats(guild)
+                if await db.get_feature(guild.id, "server_stats"):
+                    await _update_guild_stats(guild)
             except Exception as e:
                 log.warning("Stats update failed for %s: %s", guild.id, e)
 
@@ -159,11 +160,13 @@ class ServerStats(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        await _update_guild_stats(member.guild)
+        if await db.get_feature(member.guild.id, "server_stats"):
+            await _update_guild_stats(member.guild)
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
-        await _update_guild_stats(member.guild)
+        if await db.get_feature(member.guild.id, "server_stats"):
+            await _update_guild_stats(member.guild)
 
 
 async def setup(bot: commands.Bot):

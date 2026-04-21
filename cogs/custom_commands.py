@@ -105,6 +105,8 @@ class CustomCommands(commands.Cog):
             return
         if not message.content.startswith("!"):
             return
+        if not await db.get_feature(message.guild.id, "custom_commands"):
+            return
 
         parts = message.content[1:].split(None, 1)
         if not parts:

@@ -5,6 +5,7 @@ on_message grants XP with cooldown; level-up posts to configured channel.
 """
 
 import math
+import random
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -317,16 +318,18 @@ class Levels(commands.Cog):
             if (now - last).total_seconds() < cfg["cooldown_seconds"]:
                 return
 
-        import random
         xp_gain = random.randint(cfg["xp_min"], cfg["xp_max"])
         old_xp = row["xp"] if row else 0
-        old_level = row["level"] if row else 0
+        # Calculate old_level from XP directly — the DB level column is only
+        # updated here and can't be trusted as a source of truth.
+        old_level = _level_from_xp(old_xp)
         new_xp = old_xp + xp_gain
         new_level = _level_from_xp(new_xp)
 
         await db.add_user_xp(message.guild.id, message.author.id, xp_gain)
 
         if new_level > old_level:
+            await db.update_user_level(message.guild.id, message.author.id, new_level)
             await self._handle_levelup(message, new_level, cfg)
 
     async def _handle_levelup(self, message: discord.Message, new_level: int, cfg: dict):
@@ -393,12 +396,12 @@ class Levels(commands.Cog):
                 xp_gain = int(minutes * cfg.get("voice_xp_per_minute", 1))
                 if xp_gain > 0:
                     row = await db.get_user_xp(member.guild.id, member.id)
-                    old_level = row["level"] if row else 0
+                    old_level = _level_from_xp(row["xp"] if row else 0)
                     await db.add_user_xp(member.guild.id, member.id, xp_gain)
                     updated = await db.get_user_xp(member.guild.id, member.id)
                     new_level = _level_from_xp(updated["xp"])
                     if new_level > old_level:
-                        # Fake a minimal message-like context for level-up
+                        await db.update_user_level(member.guild.id, member.id, new_level)
                         class _FakeMsg:
                             guild = member.guild
                             author = member

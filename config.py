@@ -6,23 +6,32 @@ SUPPORT_SERVER = os.getenv("SUPPORT_SERVER", "https://discord.gg/example")
 COLOR_PREMIUM  = 0xFFD700
 
 FEATURES = [
-    "spam_filter",
-    "word_filter",
-    "image_block",
-    "sticker_block",
-    "external_emoji_block",
+    # Core — on by default
+    "automod",
     "logging",
     "role_automation",
-    "message_management",
-    "automod",
-    "dashboard",
-    "announcements",
-    "raid_mode",
     "reaction_roles",
     "giveaways",
-    "sticky_messages",
     "invite_tracking",
+    "sticky_messages",
+    "message_management",
+    "raid_mode",
+    # Opt-in — off by default
+    "starboard",
+    "tickets",
+    "join_leave",
+    "custom_commands",
+    "server_stats",
+    "polls",
+    "scheduler",
+    "levels",          # also requires premium
 ]
+
+# Features that must be explicitly enabled (off for all new guilds)
+FEATURES_DEFAULT_OFF = {
+    "starboard", "tickets", "join_leave", "custom_commands",
+    "server_stats", "polls", "scheduler", "levels",
+}
 
 PUNISHMENTS = ["none", "warn", "mute", "kick", "ban"]
 
