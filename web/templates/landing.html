@@ -4,230 +4,794 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Aegixa — All-in-One Discord Bot</title>
-  <meta name="description" content="Aegixa is an all-in-one Discord bot: moderation, automod, anti-raid, tickets, XP/levels, starboard, polls, custom commands, logging, and more. Free to add."/>
-  <link rel="stylesheet" href="/static/css/style.css"/>
-  <link rel="stylesheet" href="/static/css/landing.css"/>
+  <meta name="description" content="Aegixa is an all-in-one Discord bot: moderation, automod, anti-raid, tickets, XP/levels, starboard, polls, custom commands, logging, giveaways — all in one."/>
+  <meta property="og:title" content="Aegixa — All-in-One Discord Bot"/>
+  <meta property="og:description" content="Moderation, automod, anti-raid, tickets, leveling, starboard and more. Free forever."/>
+  <meta property="og:type" content="website"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-</head>
-<body class="landing-body">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+/* ─── Reset & Base ─────────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:        #15131c;
+  --bg2:       #1a1824;
+  --bg3:       #1f1c2a;
+  --bg4:       #25212f;
+  --border:    #2d2a38;
+  --gold:      #fae022;
+  --gold2:     #f5c522;
+  --orange:    #f26a24;
+  --text:      #ffffff;
+  --text2:     #b3b8cc;
+  --text3:     #6b7280;
+  --radius-sm: 8px;
+  --radius:    12px;
+  --radius-lg: 20px;
+  --radius-xl: 9999px;
+  --header-h:  68px;
+}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',system-ui,sans-serif;
+  line-height:1.6;
+  overflow-x:hidden;
+}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%}
 
-  <!-- NAV -->
-  <nav class="land-nav">
-    <a class="land-brand" href="/">Aegixa</a>
-    <div class="land-nav-links">
+/* ─── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+
+/* ─── Utility ──────────────────────────────────────────────────────────────── */
+.container{max-width:1100px;margin:0 auto;padding:0 1.5rem}
+.gold{color:var(--gold)}
+.gradient-text{
+  background:linear-gradient(90deg,var(--gold),var(--orange));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:0}
+
+/* ─── Buttons ──────────────────────────────────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;gap:.5rem;
+  padding:.7rem 1.5rem;border-radius:var(--radius-xl);
+  font-size:.95rem;font-weight:600;cursor:pointer;
+  border:none;transition:all .2s ease;white-space:nowrap;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  color:#0d0b14;
+  box-shadow:0 4px 20px rgba(250,224,34,.25);
+}
+.btn-primary:hover{box-shadow:0 6px 28px rgba(250,224,34,.4);transform:translateY(-1px)}
+.btn-ghost{
+  background:rgba(255,255,255,.06);color:var(--text);
+  border:1px solid var(--border);
+}
+.btn-ghost:hover{background:rgba(255,255,255,.1);border-color:rgba(250,224,34,.3)}
+.btn-lg{padding:.9rem 2rem;font-size:1.05rem}
+.btn svg{flex-shrink:0}
+
+/* ─── Header ───────────────────────────────────────────────────────────────── */
+header{
+  position:sticky;top:0;left:0;right:0;z-index:100;
+  height:var(--header-h);
+  background:rgba(21,19,28,.85);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+  transition:box-shadow .3s;
+}
+header.scrolled{box-shadow:0 4px 30px rgba(0,0,0,.4)}
+.header-inner{
+  height:100%;display:flex;align-items:center;
+  justify-content:space-between;gap:1rem;
+}
+.brand{
+  display:flex;align-items:center;gap:.6rem;
+  font-size:1.3rem;font-weight:800;letter-spacing:-.02em;
+  background:linear-gradient(135deg,var(--gold),var(--orange));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.brand-icon{
+  width:34px;height:34px;border-radius:8px;
+  background:linear-gradient(135deg,var(--gold),var(--orange));
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.brand-icon svg{color:#0d0b14}
+nav.links{display:flex;align-items:center;gap:.25rem}
+nav.links a{
+  padding:.45rem 1rem;border-radius:var(--radius);
+  font-size:.9rem;font-weight:500;color:var(--text2);
+  transition:color .2s,background .2s;
+}
+nav.links a:hover{color:var(--gold);background:rgba(250,224,34,.07)}
+.header-cta{display:flex;align-items:center;gap:.75rem}
+.hamburger{
+  display:none;flex-direction:column;gap:5px;cursor:pointer;
+  background:none;border:none;padding:.5rem;
+}
+.hamburger span{
+  display:block;width:22px;height:2px;
+  background:var(--text2);border-radius:99px;
+  transition:all .3s;
+}
+/* Mobile drawer */
+.mobile-nav{
+  display:none;
+  position:fixed;top:0;right:0;bottom:0;z-index:200;
+  width:280px;background:var(--bg3);
+  padding:1.5rem;box-shadow:-8px 0 40px rgba(0,0,0,.6);
+  transform:translateX(100%);transition:transform .3s ease;
+}
+.mobile-nav.open{transform:translateX(0)}
+.mobile-overlay{
+  display:none;
+  position:fixed;inset:0;z-index:199;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(4px);
+}
+.mobile-overlay.open{display:block}
+.mobile-nav-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:2rem;
+}
+.mobile-close{
+  background:none;border:none;color:var(--text2);cursor:pointer;
+  padding:.35rem;border-radius:var(--radius);
+}
+.mobile-close:hover{color:var(--text);background:var(--bg4)}
+.mobile-nav a{
+  display:block;padding:.75rem 1rem;border-radius:var(--radius);
+  color:var(--text2);font-weight:500;transition:all .2s;margin-bottom:.25rem;
+}
+.mobile-nav a:hover{color:var(--gold);background:rgba(250,224,34,.08)}
+.mobile-nav .btn{width:100%;justify-content:center;margin-top:1rem}
+
+/* ─── Hero ─────────────────────────────────────────────────────────────────── */
+.hero{
+  position:relative;overflow:hidden;
+  padding:7rem 0 5rem;text-align:center;
+}
+.hero-glow{
+  position:absolute;bottom:-60px;left:50%;transform:translateX(-50%);
+  width:600px;height:300px;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(250,224,34,.12) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-glow2{
+  position:absolute;top:20%;right:-150px;
+  width:400px;height:400px;border-radius:50%;
+  background:radial-gradient(ellipse,rgba(242,106,36,.07) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:.5rem;
+  background:rgba(250,224,34,.1);border:1px solid rgba(250,224,34,.25);
+  color:var(--gold);padding:.35rem 1rem;border-radius:var(--radius-xl);
+  font-size:.82rem;font-weight:600;letter-spacing:.02em;
+  margin-bottom:1.75rem;
+}
+.hero-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--gold);animation:blink 1.8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.hero h1{
+  font-size:clamp(2.4rem,6vw,4rem);font-weight:900;letter-spacing:-.04em;
+  line-height:1.1;margin-bottom:1.5rem;
+  max-width:780px;margin-left:auto;margin-right:auto;
+}
+.hero-sub{
+  font-size:1.1rem;color:var(--text2);max-width:620px;
+  margin:0 auto 2.5rem;line-height:1.7;
+}
+.hero-cta{display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap}
+.hero-stat{
+  margin-top:2.5rem;font-size:.88rem;color:var(--text3);
+}
+.hero-stat strong{color:var(--text2);font-weight:600}
+/* Dashboard mockup */
+.hero-mockup{
+  margin:4rem auto 0;max-width:900px;
+  position:relative;
+}
+.mockup-glow{
+  position:absolute;inset:-30px;
+  background:radial-gradient(ellipse at center,rgba(250,224,34,.08) 0%,transparent 65%);
+  pointer-events:none;
+}
+.mockup-frame{
+  border-radius:var(--radius-lg);overflow:hidden;
+  border:1px solid var(--border);
+  box-shadow:0 40px 100px rgba(0,0,0,.6);
+  background:var(--bg2);
+}
+.mockup-bar{
+  display:flex;align-items:center;gap:.5rem;
+  background:var(--bg3);padding:.7rem 1rem;
+  border-bottom:1px solid var(--border);
+}
+.dot{width:10px;height:10px;border-radius:50%}
+.dot-r{background:#ff5f57}.dot-y{background:#febc2e}.dot-g{background:#28c840}
+.mockup-url{
+  flex:1;background:rgba(0,0,0,.3);border-radius:6px;
+  padding:.2rem .75rem;font-size:.75rem;color:var(--text3);
+  margin-left:.5rem;
+}
+.mockup-body{padding:1.5rem;display:grid;grid-template-columns:180px 1fr;gap:1rem;min-height:280px}
+.mockup-sidebar{display:flex;flex-direction:column;gap:.5rem}
+.mockup-sidebar-item{
+  padding:.5rem .75rem;border-radius:var(--radius-sm);
+  font-size:.78rem;color:var(--text3);
+}
+.mockup-sidebar-item.active{background:rgba(250,224,34,.1);color:var(--gold);font-weight:600}
+.mockup-sidebar-item:not(.active):hover{background:var(--bg4);color:var(--text2)}
+.mockup-content{display:flex;flex-direction:column;gap:.75rem}
+.mockup-card{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--radius);padding:1rem;
+}
+.mockup-card-title{font-size:.8rem;font-weight:600;color:var(--text2);margin-bottom:.5rem}
+.mockup-row{display:flex;gap:.5rem;align-items:center}
+.mockup-toggle{
+  width:36px;height:20px;border-radius:99px;
+  background:rgba(250,224,34,.2);border:1px solid rgba(250,224,34,.3);
+  position:relative;flex-shrink:0;
+}
+.mockup-toggle::after{
+  content:'';position:absolute;top:2px;left:2px;
+  width:14px;height:14px;border-radius:50%;
+  background:var(--gold);
+}
+.mockup-toggle.off{background:var(--bg4);border-color:var(--border)}
+.mockup-toggle.off::after{background:var(--text3);left:auto;right:2px}
+.mockup-label{font-size:.75rem;color:var(--text2)}
+.mockup-stat-row{display:flex;gap:.75rem}
+.mockup-stat{
+  flex:1;background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--radius);padding:.75rem;text-align:center;
+}
+.mockup-stat .n{font-size:1.2rem;font-weight:700;color:var(--gold)}
+.mockup-stat .l{font-size:.7rem;color:var(--text3)}
+
+/* ─── Stats bar ─────────────────────────────────────────────────────────────── */
+.stats-bar{
+  background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+  padding:1.5rem 0;
+}
+.stats-inner{
+  display:flex;align-items:center;justify-content:center;
+  gap:0;flex-wrap:wrap;
+}
+.stat-item{
+  display:flex;flex-direction:column;align-items:center;
+  padding:0 3rem;border-right:1px solid var(--border);
+}
+.stat-item:last-child{border-right:none}
+.stat-num{font-size:1.7rem;font-weight:800;color:var(--gold);line-height:1}
+.stat-lbl{font-size:.78rem;color:var(--text3);margin-top:.2rem}
+
+/* ─── Section ───────────────────────────────────────────────────────────────── */
+.section{padding:5rem 0}
+.section-tag{
+  display:inline-block;background:rgba(250,224,34,.1);
+  border:1px solid rgba(250,224,34,.2);color:var(--gold);
+  padding:.25rem .85rem;border-radius:var(--radius-xl);
+  font-size:.78rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  margin-bottom:1rem;
+}
+.section-title{
+  font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;
+  letter-spacing:-.03em;line-height:1.15;margin-bottom:1rem;
+}
+.section-sub{font-size:1rem;color:var(--text2);max-width:540px;line-height:1.7}
+.section-header{text-align:center;margin-bottom:3.5rem}
+.section-header .section-sub{margin:0 auto}
+
+/* ─── Feature cards ─────────────────────────────────────────────────────────── */
+.features-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;
+}
+.feat-card{
+  position:relative;overflow:hidden;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:1.5rem;
+  transition:border-color .3s,transform .3s,box-shadow .3s;
+}
+.feat-card:hover{
+  border-color:rgba(250,224,34,.3);
+  transform:translateY(-3px);
+  box-shadow:0 16px 48px rgba(0,0,0,.3);
+}
+.feat-card-glow{
+  position:absolute;top:-40px;right:-40px;
+  width:120px;height:120px;border-radius:50%;
+  opacity:.25;transition:opacity .3s;pointer-events:none;
+}
+.feat-card:hover .feat-card-glow{opacity:.4}
+.glow-gold{background:radial-gradient(circle,var(--gold),transparent)}
+.glow-orange{background:radial-gradient(circle,var(--orange),transparent)}
+.glow-blue{background:radial-gradient(circle,#5865f2,transparent)}
+.glow-green{background:radial-gradient(circle,#57f287,transparent)}
+.glow-pink{background:radial-gradient(circle,#eb459e,transparent)}
+.glow-cyan{background:radial-gradient(circle,#00b0f4,transparent)}
+.feat-icon{
+  width:46px;height:46px;border-radius:var(--radius);
+  background:rgba(250,224,34,.08);border:1px solid rgba(250,224,34,.15);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:1rem;font-size:1.4rem;
+}
+.feat-title{font-size:1.05rem;font-weight:700;margin-bottom:.4rem}
+.feat-desc{font-size:.87rem;color:var(--text2);line-height:1.6}
+
+/* ─── Checklist section ─────────────────────────────────────────────────────── */
+.checklist-box{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:2.5rem;
+}
+.checklist-title{font-size:1.2rem;font-weight:700;text-align:center;margin-bottom:2rem}
+.checklist-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem 1.5rem;
+}
+.check-item{display:flex;align-items:center;gap:.6rem;font-size:.87rem;color:var(--text2)}
+.check-item::before{
+  content:'✓';flex-shrink:0;
+  width:18px;height:18px;border-radius:50%;
+  background:rgba(250,224,34,.12);color:var(--gold);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.65rem;font-weight:700;
+}
+
+/* ─── Pricing ───────────────────────────────────────────────────────────────── */
+.pricing-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;max-width:760px;margin:0 auto}
+.price-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:2rem;
+  position:relative;overflow:hidden;
+}
+.price-card.featured{border-color:rgba(250,224,34,.35);background:var(--bg3)}
+.price-card.featured::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--gold),var(--orange));
+}
+.price-badge{
+  display:inline-block;background:linear-gradient(135deg,var(--gold),var(--gold2));
+  color:#0d0b14;font-size:.72rem;font-weight:700;padding:.2rem .65rem;
+  border-radius:var(--radius-xl);margin-bottom:1rem;
+}
+.price-name{font-size:1.15rem;font-weight:700;margin-bottom:.25rem}
+.price-amount{
+  font-size:2.4rem;font-weight:900;letter-spacing:-.04em;
+  line-height:1;margin:.75rem 0 .25rem;
+}
+.price-amount span{font-size:1rem;font-weight:500;color:var(--text3)}
+.price-desc{font-size:.85rem;color:var(--text3);margin-bottom:1.5rem}
+.price-list{list-style:none;display:flex;flex-direction:column;gap:.6rem;margin-bottom:2rem}
+.price-list li{
+  display:flex;align-items:flex-start;gap:.65rem;
+  font-size:.88rem;color:var(--text2);
+}
+.price-list li::before{
+  content:'✓';flex-shrink:0;margin-top:.05rem;
+  width:17px;height:17px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.62rem;font-weight:700;
+}
+.price-card:not(.featured) .price-list li::before{
+  background:rgba(255,255,255,.08);color:var(--text2);
+}
+.price-card.featured .price-list li::before{background:rgba(250,224,34,.15);color:var(--gold)}
+.price-cta{width:100%;justify-content:center}
+
+/* ─── Bottom CTA ────────────────────────────────────────────────────────────── */
+.cta-section{
+  padding:5rem 0;text-align:center;
+  background:linear-gradient(180deg,transparent,rgba(250,224,34,.04) 50%,transparent);
+}
+.cta-section h2{font-size:clamp(1.8rem,4vw,2.5rem);font-weight:800;letter-spacing:-.03em;margin-bottom:1rem}
+.cta-section p{color:var(--text2);max-width:440px;margin:0 auto 2.5rem}
+
+/* ─── Footer ────────────────────────────────────────────────────────────────── */
+footer{
+  background:var(--bg2);border-top:1px solid var(--border);
+  padding:3rem 0 2rem;
+}
+.footer-inner{
+  display:grid;grid-template-columns:1.8fr 1fr 1fr 1fr;gap:2.5rem;
+  margin-bottom:2.5rem;
+}
+.footer-brand p{font-size:.875rem;color:var(--text3);margin-top:.6rem;line-height:1.6;max-width:240px}
+.footer-col h4{font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:.85rem}
+.footer-col a{display:block;font-size:.88rem;color:var(--text2);padding:.2rem 0;transition:color .2s}
+.footer-col a:hover{color:var(--gold)}
+.footer-bottom{
+  border-top:1px solid var(--border);padding-top:1.5rem;
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:.82rem;color:var(--text3);flex-wrap:wrap;gap:.5rem;
+}
+
+/* ─── Entrance animations ───────────────────────────────────────────────────── */
+.animate{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+.animate.visible{opacity:1;transform:none}
+.delay-1{transition-delay:.1s}.delay-2{transition-delay:.2s}
+.delay-3{transition-delay:.3s}.delay-4{transition-delay:.4s}
+.delay-5{transition-delay:.5s}.delay-6{transition-delay:.6s}
+
+/* ─── Responsive ────────────────────────────────────────────────────────────── */
+@media(max-width:900px){
+  .features-grid{grid-template-columns:1fr 1fr}
+  .checklist-grid{grid-template-columns:1fr 1fr}
+  .footer-inner{grid-template-columns:1fr 1fr}
+  .mockup-body{grid-template-columns:1fr;min-height:auto}
+  .mockup-sidebar{flex-direction:row;flex-wrap:wrap}
+  .mockup-sidebar-item{font-size:.7rem;padding:.35rem .6rem}
+}
+@media(max-width:640px){
+  nav.links,.header-cta .btn-ghost{display:none}
+  .hamburger{display:flex}
+  .hero{padding:5rem 0 3.5rem}
+  .features-grid{grid-template-columns:1fr}
+  .stats-inner{gap:0}
+  .stat-item{padding:1rem 1.5rem;border-right:none;border-bottom:1px solid var(--border)}
+  .stat-item:last-child{border-bottom:none}
+  .stats-inner{flex-direction:column}
+  .pricing-grid{grid-template-columns:1fr}
+  .footer-inner{grid-template-columns:1fr}
+  .footer-bottom{flex-direction:column;text-align:center}
+  .checklist-grid{grid-template-columns:1fr 1fr}
+  .mockup-stat-row{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════ HEADER -->
+<header id="header">
+  <div class="container header-inner">
+    <a href="/" class="brand">
+      <div class="brand-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      Aegixa
+    </a>
+
+    <nav class="links">
       <a href="#features">Features</a>
       <a href="#pricing">Pricing</a>
       <a href="{{ support_server }}" target="_blank" rel="noopener">Support</a>
-    </div>
-    <div class="land-nav-actions">
-      <a class="btn btn-ghost" href="/auth/login">Dashboard</a>
-      <a class="btn btn-primary" href="{{ invite_url }}" target="_blank" rel="noopener">Add to Discord</a>
-    </div>
-  </nav>
+      <a href="/auth/login">Dashboard</a>
+    </nav>
 
-  <!-- HERO -->
-  <section class="hero">
-    <div class="hero-badge">Free to use &nbsp;·&nbsp; Premium available</div>
-    <h1 class="hero-title">One Bot.<br/>Everything You Need.</h1>
-    <p class="hero-sub">
-      Aegixa replaces five bots in one. Moderation, automod, anti-raid, tickets,
-      XP levels, starboard, polls, custom commands, logging, giveaways — all in a single
-      bot with a web dashboard. Set up in under a minute.
+    <div class="header-cta">
+      <a class="btn btn-ghost" href="/auth/login">Dashboard</a>
+      <a class="btn btn-primary" href="{{ invite_url }}" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 71 55" fill="currentColor"><path d="M60.105 4.898A58.549 58.549 0 0 0 45.653.415a.22.22 0 0 0-.233.11 40.784 40.784 0 0 0-1.8 3.697c-5.456-.817-10.88-.817-16.224 0a37.33 37.33 0 0 0-1.827-3.697.229.229 0 0 0-.233-.11 58.39 58.39 0 0 0-14.451 4.483.207.207 0 0 0-.096.082C1.578 18.73-.944 32.144.293 45.39a.244.244 0 0 0 .093.167c6.073 4.46 11.955 7.167 17.729 8.962a.231.231 0 0 0 .249-.082 42.08 42.08 0 0 0 3.627-5.9.225.225 0 0 0-.123-.312 38.772 38.772 0 0 1-5.539-2.64.228.228 0 0 1-.022-.378c.372-.279.744-.569 1.1-.862a.22.22 0 0 1 .23-.031c11.619 5.304 24.198 5.304 35.68 0a.219.219 0 0 1 .233.028c.356.293.728.586 1.103.865a.228.228 0 0 1-.02.378 36.384 36.384 0 0 1-5.54 2.637.226.226 0 0 0-.12.315 47.249 47.249 0 0 0 3.623 5.897.228.228 0 0 0 .249.084c5.801-1.795 11.684-4.502 17.757-8.962a.228.228 0 0 0 .092-.164c1.48-15.315-2.48-28.618-10.497-40.412a.18.18 0 0 0-.093-.084zm-36.38 32.427c-3.497 0-6.38-3.211-6.38-7.156 0-3.944 2.827-7.156 6.38-7.156 3.583 0 6.437 3.24 6.38 7.156 0 3.945-2.826 7.156-6.38 7.156zm23.593 0c-3.498 0-6.38-3.211-6.38-7.156 0-3.944 2.826-7.156 6.38-7.156 3.582 0 6.437 3.24 6.38 7.156 0 3.945-2.798 7.156-6.38 7.156z"/></svg>
+        Add to Discord
+      </a>
+    </div>
+
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<!-- Mobile nav -->
+<div class="mobile-overlay" id="overlay"></div>
+<div class="mobile-nav" id="mobileNav">
+  <div class="mobile-nav-header">
+    <span class="brand">Aegixa</span>
+    <button class="mobile-close" id="mobileClose">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <a href="#features">Features</a>
+  <a href="#pricing">Pricing</a>
+  <a href="{{ support_server }}" target="_blank" rel="noopener">Support</a>
+  <a href="/auth/login">Dashboard</a>
+  <a class="btn btn-primary btn-lg" href="{{ invite_url }}" target="_blank" rel="noopener">Add to Discord</a>
+</div>
+
+<!-- ══════════════════════════════════════════════ HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-glow2"></div>
+  <div class="container">
+    <div class="hero-badge animate">🛡️ Free to use &nbsp;·&nbsp; Premium available</div>
+    <h1 class="animate delay-1">
+      The Ultimate<br/>
+      <span class="gradient-text">Discord Protection</span><br/>
+      &amp; Management Bot
+    </h1>
+    <p class="hero-sub animate delay-2">
+      Aegixa replaces five bots with one. Moderation, automod, anti-raid, tickets,
+      XP levels, starboard, and more — with a full web dashboard.
     </p>
-    <div class="hero-cta">
-      <a class="btn btn-primary btn-xl" href="{{ invite_url }}" target="_blank" rel="noopener">
-        <svg width="20" height="20" viewBox="0 0 71 55" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M60.105 4.898A58.549 58.549 0 0 0 45.653.415a.22.22 0 0 0-.233.11 40.784 40.784 0 0 0-1.8 3.697c-5.456-.817-10.88-.817-16.224 0a37.33 37.33 0 0 0-1.827-3.697.229.229 0 0 0-.233-.11 58.39 58.39 0 0 0-14.451 4.483.207.207 0 0 0-.096.082C1.578 18.73-.944 32.144.293 45.39a.244.244 0 0 0 .093.167c6.073 4.46 11.955 7.167 17.729 8.962a.231.231 0 0 0 .249-.082 42.08 42.08 0 0 0 3.627-5.9.225.225 0 0 0-.123-.312 38.772 38.772 0 0 1-5.539-2.64.228.228 0 0 1-.022-.378c.372-.279.744-.569 1.1-.862a.22.22 0 0 1 .23-.031c11.619 5.304 24.198 5.304 35.68 0a.219.219 0 0 1 .233.028c.356.293.728.586 1.103.865a.228.228 0 0 1-.02.378 36.384 36.384 0 0 1-5.54 2.637.226.226 0 0 0-.12.315 47.249 47.249 0 0 0 3.623 5.897.228.228 0 0 0 .249.084c5.801-1.795 11.684-4.502 17.757-8.962a.228.228 0 0 0 .092-.164c1.48-15.315-2.48-28.618-10.497-40.412a.18.18 0 0 0-.093-.084zm-36.38 32.427c-3.497 0-6.38-3.211-6.38-7.156 0-3.944 2.827-7.156 6.38-7.156 3.583 0 6.437 3.24 6.38 7.156 0 3.945-2.826 7.156-6.38 7.156zm23.593 0c-3.498 0-6.38-3.211-6.38-7.156 0-3.944 2.826-7.156 6.38-7.156 3.582 0 6.437 3.24 6.38 7.156 0 3.945-2.798 7.156-6.38 7.156z" fill="currentColor"/></svg>
+    <div class="hero-cta animate delay-3">
+      <a class="btn btn-primary btn-lg" href="{{ invite_url }}" target="_blank" rel="noopener">
+        <svg width="18" height="18" viewBox="0 0 71 55" fill="currentColor"><path d="M60.105 4.898A58.549 58.549 0 0 0 45.653.415a.22.22 0 0 0-.233.11 40.784 40.784 0 0 0-1.8 3.697c-5.456-.817-10.88-.817-16.224 0a37.33 37.33 0 0 0-1.827-3.697.229.229 0 0 0-.233-.11 58.39 58.39 0 0 0-14.451 4.483.207.207 0 0 0-.096.082C1.578 18.73-.944 32.144.293 45.39a.244.244 0 0 0 .093.167c6.073 4.46 11.955 7.167 17.729 8.962a.231.231 0 0 0 .249-.082 42.08 42.08 0 0 0 3.627-5.9.225.225 0 0 0-.123-.312 38.772 38.772 0 0 1-5.539-2.64.228.228 0 0 1-.022-.378c.372-.279.744-.569 1.1-.862a.22.22 0 0 1 .23-.031c11.619 5.304 24.198 5.304 35.68 0a.219.219 0 0 1 .233.028c.356.293.728.586 1.103.865a.228.228 0 0 1-.02.378 36.384 36.384 0 0 1-5.54 2.637.226.226 0 0 0-.12.315 47.249 47.249 0 0 0 3.623 5.897.228.228 0 0 0 .249.084c5.801-1.795 11.684-4.502 17.757-8.962a.228.228 0 0 0 .092-.164c1.48-15.315-2.48-28.618-10.497-40.412a.18.18 0 0 0-.093-.084zm-36.38 32.427c-3.497 0-6.38-3.211-6.38-7.156 0-3.944 2.827-7.156 6.38-7.156 3.583 0 6.437 3.24 6.38 7.156 0 3.945-2.826 7.156-6.38 7.156zm23.593 0c-3.498 0-6.38-3.211-6.38-7.156 0-3.944 2.826-7.156 6.38-7.156 3.582 0 6.437 3.24 6.38 7.156 0 3.945-2.798 7.156-6.38 7.156z"/></svg>
         Add to Discord — It's Free
       </a>
-      <a class="btn btn-ghost btn-xl" href="#features">See Features</a>
+      <a class="btn btn-ghost btn-lg" href="/auth/login">Open Dashboard</a>
     </div>
-    <p class="hero-stat">Protecting <strong>{{ guild_count }}</strong> servers</p>
-  </section>
+    <p class="hero-stat animate delay-4">
+      Trusted by <strong>{{ guild_count }}</strong> Discord servers
+    </p>
 
-  <!-- FEATURES -->
-  <section class="section" id="features">
-    <div class="section-inner">
-      <div class="section-header">
-        <h2>Replace five bots with one</h2>
-        <p>Everything works out of the box. Configure once with <code>/setup</code> and Aegixa handles the rest.</p>
-      </div>
-      <div class="feature-grid">
-
-        <div class="feature-card">
-          <div class="feature-icon">🔨</div>
-          <h3>Full Moderation Suite</h3>
-          <p>Ban, kick, mute, temp-ban, warn, purge, nickname management, slowmode, channel lock — all as slash commands with full reason logging.</p>
+    <!-- Dashboard mockup -->
+    <div class="hero-mockup animate delay-5">
+      <div class="mockup-glow"></div>
+      <div class="mockup-frame">
+        <div class="mockup-bar">
+          <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+          <div class="mockup-url">aegixa.xyz/dashboard</div>
         </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">🤖</div>
-          <h3>Smart Automod</h3>
-          <p>10 content filters — spam, words, caps, links, invites, images, stickers, external emojis, mass mentions, rate limiting. Per-filter punishments.</p>
+        <div class="mockup-body">
+          <div class="mockup-sidebar">
+            <div class="mockup-sidebar-item active">⚡ Features</div>
+            <div class="mockup-sidebar-item">🛡️ Automod</div>
+            <div class="mockup-sidebar-item">📋 Logs</div>
+            <div class="mockup-sidebar-item">🎫 Tickets</div>
+            <div class="mockup-sidebar-item">🏆 Levels</div>
+            <div class="mockup-sidebar-item">⭐ Starboard</div>
+          </div>
+          <div class="mockup-content">
+            <div class="mockup-card">
+              <div class="mockup-card-title">Features</div>
+              <div style="display:flex;flex-direction:column;gap:.5rem">
+                <div class="mockup-row"><div class="mockup-toggle"></div><span class="mockup-label">Automod</span></div>
+                <div class="mockup-row"><div class="mockup-toggle"></div><span class="mockup-label">Logging</span></div>
+                <div class="mockup-row"><div class="mockup-toggle off"></div><span class="mockup-label">Tickets</span></div>
+                <div class="mockup-row"><div class="mockup-toggle off"></div><span class="mockup-label">XP / Levels</span></div>
+              </div>
+            </div>
+            <div class="mockup-stat-row">
+              <div class="mockup-stat"><div class="n">{{ guild_count }}</div><div class="l">Servers</div></div>
+              <div class="mockup-stat"><div class="n" style="color:#57f287">✓</div><div class="l">Online</div></div>
+              <div class="mockup-stat"><div class="n" style="color:#5865f2">14</div><div class="l">Features</div></div>
+            </div>
+          </div>
         </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">🎫</div>
-          <h3>Ticket System</h3>
-          <p>Clean embed-based support tickets. Members click a button, a private channel opens. Closes with a transcript and DM notification. No separate bot needed.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">🛡️</div>
-          <h3>Anti-Raid Protection</h3>
-          <p>Auto-detects join surges and locks the server instantly. Account-age gating blocks throwaway accounts the moment they join.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">📋</div>
-          <h3>9 Log Channels</h3>
-          <p>Independent channels for member joins/leaves, edits, deletes, voice, role changes, channel edits, mod actions, invites, and bans.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">🎭</div>
-          <h3>Role Automation</h3>
-          <p>Auto-assign roles on join, swap or grant roles when members gain other roles. Reaction roles for self-assignment. All configurable.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">⭐</div>
-          <h3>Starboard</h3>
-          <p>Automatically repost popular messages to a starboard channel when they hit a reaction threshold. Keeps the best content visible.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">📊</div>
-          <h3>Polls</h3>
-          <p>Create yes/no polls or multi-choice polls (up to 5 options) with a single slash command. Reactions are added automatically.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">🎉</div>
-          <h3>Giveaways & Invites</h3>
-          <p>Run timed giveaways with automatic winner selection. Invite tracking logs exactly which invite link each new member used.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">💬</div>
-          <h3>Custom Commands</h3>
-          <p>Define up to 50 custom <code>!commands</code> with any response. No coding required — create them right from Discord.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">📌</div>
-          <h3>Sticky Messages & Scheduling</h3>
-          <p>Pin messages to channel bottoms permanently. Schedule messages to be posted at any future time — perfect for announcements.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">🖥️</div>
-          <h3>Web Dashboard</h3>
-          <p>Manage log channels, filters, warnings, mod actions, role rules, giveaways, tickets and more from a browser without touching a command.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">👋</div>
-          <h3>Join / Leave & Welcome DM</h3>
-          <p>Custom join and leave messages with variables. Private welcome DMs to new members. Auto-assign roles on join with optional delay.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">📈</div>
-          <h3>Server Stats Channels</h3>
-          <p>Live voice channels showing member count, online count, bot count, and channel count — auto-updated every 10 minutes.</p>
-        </div>
-
-        <div class="feature-card feature-card--premium">
-          <div class="feature-icon">🏆</div>
-          <h3>XP / Levels <span class="badge-premium">Premium</span></h3>
-          <p>Members earn XP by chatting and in voice. Level-up announcements, role rewards at milestones, leaderboard, admin XP management.</p>
-        </div>
-
-        <div class="feature-card feature-card--premium">
-          <div class="feature-icon">🎣</div>
-          <h3>Phishing Detection <span class="badge-premium">Premium</span></h3>
-          <p>Scans every message for known phishing domains and scam links. Deleted before your members can click them.</p>
-        </div>
-
-        <div class="feature-card feature-card--premium">
-          <div class="feature-icon">✅</div>
-          <h3>Verification Gate <span class="badge-premium">Premium</span></h3>
-          <p>Hold new members in a locked channel until they click Verify. Stops bot accounts and raiders before they reach your community.</p>
-        </div>
-
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- PRICING -->
-  <section class="section section--alt" id="pricing">
-    <div class="section-inner">
-      <div class="section-header">
-        <h2>Simple, honest pricing</h2>
-        <p>The free tier replaces 4–5 separate bots. Premium adds the high-security extras.</p>
+<!-- ══════════════════════════════════════════════ STATS -->
+<div class="stats-bar">
+  <div class="container">
+    <div class="stats-inner">
+      <div class="stat-item">
+        <div class="stat-num">{{ guild_count }}+</div>
+        <div class="stat-lbl">Servers protected</div>
       </div>
-      <div class="pricing-grid">
-
-        <div class="pricing-card">
-          <div class="pricing-tier">Free</div>
-          <div class="pricing-price">£0 <span>/forever</span></div>
-          <ul class="pricing-list">
-            <li>✔ Full moderation suite</li>
-            <li>✔ 10 automod filters</li>
-            <li>✔ Anti-raid auto-detection</li>
-            <li>✔ 9 independent log channels</li>
-            <li>✔ Ticket system</li>
-            <li>✔ Starboard</li>
-            <li>✔ Polls &amp; custom commands</li>
-            <li>✔ Join/leave, autoroles, welcome DM</li>
-            <li>✔ Giveaways &amp; invite tracking</li>
-            <li>✔ Server stats channels</li>
-            <li>✔ Scheduled messages</li>
-            <li>✔ Sticky messages</li>
-            <li>✔ Role automation &amp; reaction roles</li>
-            <li>✔ Web dashboard &amp; console</li>
-          </ul>
-          <a class="btn btn-ghost btn-lg" href="{{ invite_url }}" target="_blank" rel="noopener">Add to Discord</a>
-        </div>
-
-        <div class="pricing-card pricing-card--featured">
-          <div class="pricing-badge">Most Popular</div>
-          <div class="pricing-tier">Premium</div>
-          <div class="pricing-price">£{{ premium_price }} <span>/month</span></div>
-          <ul class="pricing-list">
-            <li>✔ Everything in Free</li>
-            <li>⭐ XP / Levels system</li>
-            <li>⭐ Voice XP tracking</li>
-            <li>⭐ Phishing &amp; scam link detection</li>
-            <li>⭐ Member verification gate</li>
-            <li>⭐ Priority support</li>
-            <li>⭐ All future premium features</li>
-          </ul>
-          <a class="btn btn-primary btn-lg" href="{{ premium_url }}" target="_blank" rel="noopener">Get Premium</a>
-          <p class="pricing-note">License key — redeem with <code>/redeem</code></p>
-        </div>
-
+      <div class="stat-item">
+        <div class="stat-num">14</div>
+        <div class="stat-lbl">Feature modules</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">50+</div>
+        <div class="stat-lbl">Slash commands</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">Free</div>
+        <div class="stat-lbl">Forever for most features</div>
       </div>
     </div>
-  </section>
+  </div>
+</div>
 
-  <!-- CTA STRIP -->
-  <section class="cta-strip">
-    <h2>Add it in 30 seconds. Free forever.</h2>
-    <p>Run <code>/setup staff</code> and <code>/setup logs</code> and your server is protected. No credit card, no trial period.</p>
-    <a class="btn btn-primary btn-xl" href="{{ invite_url }}" target="_blank" rel="noopener">Add Aegixa Free</a>
-  </section>
-
-  <!-- FOOTER -->
-  <footer class="land-footer">
-    <span>© 2026 Aegixa</span>
-    <div class="footer-links">
-      <a href="{{ support_server }}" target="_blank" rel="noopener">Support Server</a>
-      <a href="{{ premium_url }}" target="_blank" rel="noopener">Premium</a>
-      <a href="/auth/login">Dashboard</a>
+<!-- ══════════════════════════════════════════════ FEATURES -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-header animate">
+      <div class="section-tag">Features</div>
+      <h2 class="section-title">Everything your server needs,<br/><span class="gradient-text">in one bot</span></h2>
+      <p class="section-sub">No more juggling five different bots. Aegixa handles it all — moderation, community tools, automation, and more.</p>
     </div>
-  </footer>
 
+    <div class="features-grid">
+      <div class="feat-card animate delay-1">
+        <div class="feat-card-glow glow-gold"></div>
+        <div class="feat-icon">🛡️</div>
+        <div class="feat-title">Automod &amp; Anti-Raid</div>
+        <div class="feat-desc">11 configurable filters — spam, links, caps, invites, mentions, phishing detection (Premium) and more. Smart anti-raid with auto-kick/ban thresholds.</div>
+      </div>
+      <div class="feat-card animate delay-2">
+        <div class="feat-card-glow glow-blue"></div>
+        <div class="feat-icon">📋</div>
+        <div class="feat-title">Advanced Logging</div>
+        <div class="feat-desc">9 log categories: edits, deletes, member joins/leaves, voice events, role changes, channel updates, mod actions, and more — all routed to separate channels.</div>
+      </div>
+      <div class="feat-card animate delay-3">
+        <div class="feat-card-glow glow-green"></div>
+        <div class="feat-icon">🎫</div>
+        <div class="feat-title">Ticket System</div>
+        <div class="feat-desc">Button-based tickets with up to 3 configurable types, add/remove users, rename, staff notes, HTML transcripts, and auto-close idle tickets.</div>
+      </div>
+      <div class="feat-card animate delay-2">
+        <div class="feat-card-glow glow-orange"></div>
+        <div class="feat-icon">⚙️</div>
+        <div class="feat-title">Moderation Suite</div>
+        <div class="feat-desc">Kick, ban, mute, warn, temp-ban, message purge, channel lock, slowmode. Full warning history per member with reason tracking.</div>
+      </div>
+      <div class="feat-card animate delay-3">
+        <div class="feat-card-glow glow-pink"></div>
+        <div class="feat-icon">👋</div>
+        <div class="feat-title">Join / Leave &amp; Autoroles</div>
+        <div class="feat-desc">Custom welcome and leave messages with rich variable support. Welcome DMs. Auto-assign roles on join with configurable delay.</div>
+      </div>
+      <div class="feat-card animate delay-4">
+        <div class="feat-card-glow glow-cyan"></div>
+        <div class="feat-icon">🎉</div>
+        <div class="feat-title">Giveaways</div>
+        <div class="feat-desc">Create and manage giveaways with automatic winner selection, reroll, and end announcements. Fully button-driven.</div>
+      </div>
+    </div>
+
+    <!-- Secondary features -->
+    <div class="checklist-box animate" style="margin-top:1.5rem">
+      <div class="checklist-title">And much more…</div>
+      <div class="checklist-grid">
+        <div class="check-item">Reaction Roles</div>
+        <div class="check-item">Invite Tracking</div>
+        <div class="check-item">Sticky Messages</div>
+        <div class="check-item">Custom Commands</div>
+        <div class="check-item">Server Stats Channels</div>
+        <div class="check-item">Polls</div>
+        <div class="check-item">Scheduled Messages</div>
+        <div class="check-item">Starboard</div>
+        <div class="check-item">Role Automation</div>
+        <div class="check-item">Temp Bans</div>
+        <div class="check-item">Message Management</div>
+        <div class="check-item">Web Dashboard</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════════ PRICING -->
+<section class="section" id="pricing">
+  <div class="container">
+    <div class="section-header animate">
+      <div class="section-tag">Pricing</div>
+      <h2 class="section-title">Powerful for free.<br/><span class="gradient-text">Extraordinary with Premium.</span></h2>
+      <p class="section-sub">Most features are completely free. Premium unlocks the advanced systems that power the best communities.</p>
+    </div>
+
+    <div class="pricing-grid">
+      <!-- Free -->
+      <div class="price-card animate delay-1">
+        <div class="price-name">Free</div>
+        <div class="price-amount">$0<span>/forever</span></div>
+        <div class="price-desc">Everything you need to run a great server.</div>
+        <ul class="price-list">
+          <li>Full automod &amp; anti-raid</li>
+          <li>Moderation commands (kick, ban, warn…)</li>
+          <li>Advanced logging (9 categories)</li>
+          <li>Ticket system with types &amp; transcripts</li>
+          <li>Join/Leave messages &amp; autoroles</li>
+          <li>Reaction roles &amp; role automation</li>
+          <li>Giveaways &amp; invite tracking</li>
+          <li>Polls, starboard &amp; custom commands</li>
+          <li>Scheduled messages</li>
+          <li>Server stats channels</li>
+          <li>Web dashboard</li>
+        </ul>
+        <a class="btn btn-ghost price-cta" href="{{ invite_url }}" target="_blank" rel="noopener">Add Aegixa Free</a>
+      </div>
+      <!-- Premium -->
+      <div class="price-card featured animate delay-2">
+        <div class="price-badge">PREMIUM</div>
+        <div class="price-name">Premium</div>
+        <div class="price-amount"><span>$</span>{{ premium_price }}<span>/month</span></div>
+        <div class="price-desc">Unlock the full power of Aegixa for your server.</div>
+        <ul class="price-list">
+          <li>Everything in Free</li>
+          <li>XP / Levels system</li>
+          <li>Voice XP — earn XP in voice channels</li>
+          <li>Level roles &amp; custom level-up messages</li>
+          <li>XP leaderboard</li>
+          <li>Phishing link detection</li>
+          <li>Member verification gate</li>
+          <li>Priority support</li>
+          <li>All future premium features</li>
+        </ul>
+        <a class="btn btn-primary price-cta" href="{{ premium_url }}" target="_blank" rel="noopener">Get Premium</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════════ BOTTOM CTA -->
+<section class="cta-section">
+  <div class="container">
+    <h2 class="animate">Ready to level up your server?</h2>
+    <p class="animate delay-1">Add Aegixa in seconds. No complicated setup — just invite and go.</p>
+    <div class="animate delay-2" style="display:flex;justify-content:center;gap:1rem;flex-wrap:wrap">
+      <a class="btn btn-primary btn-lg" href="{{ invite_url }}" target="_blank" rel="noopener">
+        <svg width="18" height="18" viewBox="0 0 71 55" fill="currentColor"><path d="M60.105 4.898A58.549 58.549 0 0 0 45.653.415a.22.22 0 0 0-.233.11 40.784 40.784 0 0 0-1.8 3.697c-5.456-.817-10.88-.817-16.224 0a37.33 37.33 0 0 0-1.827-3.697.229.229 0 0 0-.233-.11 58.39 58.39 0 0 0-14.451 4.483.207.207 0 0 0-.096.082C1.578 18.73-.944 32.144.293 45.39a.244.244 0 0 0 .093.167c6.073 4.46 11.955 7.167 17.729 8.962a.231.231 0 0 0 .249-.082 42.08 42.08 0 0 0 3.627-5.9.225.225 0 0 0-.123-.312 38.772 38.772 0 0 1-5.539-2.64.228.228 0 0 1-.022-.378c.372-.279.744-.569 1.1-.862a.22.22 0 0 1 .23-.031c11.619 5.304 24.198 5.304 35.68 0a.219.219 0 0 1 .233.028c.356.293.728.586 1.103.865a.228.228 0 0 1-.02.378 36.384 36.384 0 0 1-5.54 2.637.226.226 0 0 0-.12.315 47.249 47.249 0 0 0 3.623 5.897.228.228 0 0 0 .249.084c5.801-1.795 11.684-4.502 17.757-8.962a.228.228 0 0 0 .092-.164c1.48-15.315-2.48-28.618-10.497-40.412a.18.18 0 0 0-.093-.084zm-36.38 32.427c-3.497 0-6.38-3.211-6.38-7.156 0-3.944 2.827-7.156 6.38-7.156 3.583 0 6.437 3.24 6.38 7.156 0 3.945-2.826 7.156-6.38 7.156zm23.593 0c-3.498 0-6.38-3.211-6.38-7.156 0-3.944 2.826-7.156 6.38-7.156 3.582 0 6.437 3.24 6.38 7.156 0 3.945-2.798 7.156-6.38 7.156z"/></svg>
+        Add to Discord — Free
+      </a>
+      <a class="btn btn-ghost btn-lg" href="{{ support_server }}" target="_blank" rel="noopener">Join Support Server</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════ FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="/" class="brand">Aegixa</a>
+        <p>An all-in-one Discord moderation and community management bot. Free forever for core features.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="{{ premium_url }}" target="_blank" rel="noopener">Get Premium</a>
+      </div>
+      <div class="footer-col">
+        <h4>Links</h4>
+        <a href="{{ invite_url }}" target="_blank" rel="noopener">Add to Discord</a>
+        <a href="/auth/login">Dashboard</a>
+        <a href="{{ support_server }}" target="_blank" rel="noopener">Support Server</a>
+      </div>
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 Aegixa. All rights reserved.</span>
+      <span>Built with ❤️ for Discord communities</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Sticky header shadow
+const header = document.getElementById('header');
+window.addEventListener('scroll', () => {
+  header.classList.toggle('scrolled', window.scrollY > 20);
+}, {passive: true});
+
+// Entrance animations via IntersectionObserver
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, {threshold: 0.12, rootMargin: '0px 0px -40px 0px'});
+document.querySelectorAll('.animate').forEach(el => observer.observe(el));
+
+// Mobile nav
+const hamburger = document.getElementById('hamburger');
+const mobileNav = document.getElementById('mobileNav');
+const overlay   = document.getElementById('overlay');
+const mobileClose = document.getElementById('mobileClose');
+function openNav() {
+  mobileNav.classList.add('open');
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  mobileNav.style.display = 'block';
+  overlay.style.display = 'block';
+}
+function closeNav() {
+  mobileNav.classList.remove('open');
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+hamburger.addEventListener('click', openNav);
+mobileClose.addEventListener('click', closeNav);
+overlay.addEventListener('click', closeNav);
+mobileNav.querySelectorAll('a').forEach(a => a.addEventListener('click', closeNav));
+</script>
 </body>
 </html>
