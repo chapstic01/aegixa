@@ -1,284 +1,356 @@
 {% extends "base.html" %}
 {% block title %}{{ guild.name }} — Aegixa{% endblock %}
-{% block content %}
-<div class="dashboard-header">
-  {% if guild.icon %}
-    <img class="guild-icon-lg" src="{{ guild.icon }}" alt="{{ guild.name }}"/>
-  {% else %}
-    <div class="guild-icon-lg guild-icon-placeholder">{{ guild.name[0] }}</div>
-  {% endif %}
-  <div>
-    <h1>{{ guild.name }}</h1>
-    <a href="/" class="text-muted small">← Back to servers</a>
-  </div>
-</div>
 
-<div class="tabs">
-  <button class="tab active" data-tab="logs">Logs</button>
-  <button class="tab" data-tab="features">Features</button>
-  <button class="tab" data-tab="filters">Filters</button>
-  <button class="tab" data-tab="words">Word Filter</button>
-  <button class="tab" data-tab="roles">Role Rules</button>
-  <button class="tab" data-tab="warnings">Warnings</button>
-  <button class="tab" data-tab="alerts">Alerts</button>
-  <button class="tab" data-tab="moderation">Moderation</button>
-  <button class="tab" data-tab="auditlog">Audit Log</button>
-  <button class="tab" data-tab="giveaways">Giveaways</button>
-  <button class="tab" data-tab="reactionroles">Reaction Roles</button>
-  <button class="tab" data-tab="sticky">Sticky</button>
-  <button class="tab" data-tab="joinleave">Join / Leave</button>
-  <button class="tab" data-tab="tickets">Tickets</button>
-  <button class="tab" data-tab="starboard">Starboard</button>
-  <button class="tab" data-tab="customcmds">Custom Cmds</button>
-  <button class="tab" data-tab="schedule">Scheduled</button>
-  {% if is_bot_owner %}
-  <button class="tab" data-tab="console-link">Console</button>
-  {% endif %}
-</div>
+{% block layout %}
+<div class="dash-layout">
 
-<!-- LOGS TAB -->
-<div id="tab-logs" class="tab-content active">
-  <div class="card">
-    <h2>Log Channels</h2>
-    <p class="text-muted">Assign a channel to each log type. Leave blank to disable.</p>
-    <div id="logs-form" class="form-grid">
-      <div class="spinner"></div>
-    </div>
-    <button class="btn btn-primary" onclick="saveLogs()">Save Log Channels</button>
-  </div>
-</div>
+  <!-- ── Sidebar ────────────────────────────────────────────────── -->
+  <aside class="dash-sidebar" id="dash-sidebar">
 
-<!-- FEATURES TAB -->
-<div id="tab-features" class="tab-content hidden">
-  <div class="card">
-    <h2>Feature Toggles</h2>
-    <p class="text-muted">Enable or disable major bot features.</p>
-    <div id="features-list" class="toggle-list">
-      <div class="spinner"></div>
-    </div>
-  </div>
-</div>
-
-<!-- FILTERS TAB -->
-<div id="tab-filters" class="tab-content hidden">
-  <div class="card">
-    <h2>Automod Filters</h2>
-    <p class="text-muted">Toggle each filter and set its punishment independently.</p>
-    <div id="filters-list" class="filter-list">
-      <div class="spinner"></div>
-    </div>
-  </div>
-</div>
-
-<!-- WORDS TAB -->
-<div id="tab-words" class="tab-content hidden">
-  <div class="card">
-    <h2>Banned Words</h2>
-    <div class="input-row">
-      <input type="text" id="word-input" class="input" placeholder="Enter word or phrase..." maxlength="100"/>
-      <button class="btn btn-primary" onclick="addWord()">Add</button>
-    </div>
-    <div id="words-list" class="tag-list"></div>
-  </div>
-</div>
-
-<!-- ROLES TAB -->
-<div id="tab-roles" class="tab-content hidden">
-  <div class="row-2col">
-    <div class="card">
-      <h2>Role Swap Rules</h2>
-      <p class="text-muted">Gaining the trigger role automatically removes the target role.</p>
-      <div id="swap-rules"></div>
-      <div class="input-row">
-        <select id="swap-trigger" class="input"></select>
-        <span style="align-self:center">→ remove</span>
-        <select id="swap-remove" class="input"></select>
-        <input type="text" id="swap-note" class="input" placeholder="Note (optional)"/>
-        <button class="btn btn-primary" onclick="addSwap()">Add</button>
+    <!-- Guild identity -->
+    <div class="sidebar-guild">
+      {% if guild.icon %}
+        <img class="sidebar-guild-icon" src="{{ guild.icon }}" alt="{{ guild.name }}"/>
+      {% else %}
+        <div class="sidebar-guild-icon-placeholder">{{ guild.name[0] }}</div>
+      {% endif %}
+      <div style="min-width:0">
+        <div class="sidebar-guild-name">{{ guild.name }}</div>
+        <a href="/" class="sidebar-guild-back">← All servers</a>
       </div>
     </div>
-    <div class="card">
-      <h2>Role Grant Rules</h2>
-      <p class="text-muted">Gaining the trigger role automatically grants the target role.</p>
-      <div id="grant-rules"></div>
-      <div class="input-row">
-        <select id="grant-trigger" class="input"></select>
-        <span style="align-self:center">→ grant</span>
-        <select id="grant-grant" class="input"></select>
-        <input type="text" id="grant-note" class="input" placeholder="Note (optional)"/>
-        <button class="btn btn-primary" onclick="addGrant()">Add</button>
+
+    <!-- Nav -->
+    <nav class="sidebar-nav">
+
+      <div class="sidebar-section">
+        <span class="sidebar-label">Moderation</span>
+        <button class="sidebar-item tab active" data-tab="moderation">
+          <span class="si-icon">⚡</span> Mod Actions
+        </button>
+        <button class="sidebar-item tab" data-tab="warnings">
+          <span class="si-icon">⚠️</span> Warnings
+        </button>
+        <button class="sidebar-item tab" data-tab="auditlog">
+          <span class="si-icon">📜</span> Audit Log
+        </button>
+      </div>
+
+      <div class="sidebar-section">
+        <span class="sidebar-label">Automod</span>
+        <button class="sidebar-item tab" data-tab="filters">
+          <span class="si-icon">🛡️</span> Filters
+        </button>
+        <button class="sidebar-item tab" data-tab="words">
+          <span class="si-icon">🚫</span> Word Filter
+        </button>
+        <button class="sidebar-item tab" data-tab="alerts">
+          <span class="si-icon">🔔</span> Alerts
+        </button>
+      </div>
+
+      <div class="sidebar-section">
+        <span class="sidebar-label">Server</span>
+        <button class="sidebar-item tab" data-tab="logs">
+          <span class="si-icon">📢</span> Log Channels
+        </button>
+        <button class="sidebar-item tab" data-tab="features">
+          <span class="si-icon">🔘</span> Features
+        </button>
+        <button class="sidebar-item tab" data-tab="roles">
+          <span class="si-icon">👥</span> Role Rules
+        </button>
+        <button class="sidebar-item tab" data-tab="reactionroles">
+          <span class="si-icon">🎭</span> Reaction Roles
+        </button>
+        <button class="sidebar-item tab" data-tab="joinleave">
+          <span class="si-icon">👋</span> Join / Leave
+        </button>
+      </div>
+
+      <div class="sidebar-section">
+        <span class="sidebar-label">Content</span>
+        <button class="sidebar-item tab" data-tab="tickets">
+          <span class="si-icon">🎫</span> Tickets
+        </button>
+        <button class="sidebar-item tab" data-tab="giveaways">
+          <span class="si-icon">🎉</span> Giveaways
+        </button>
+        <button class="sidebar-item tab" data-tab="starboard">
+          <span class="si-icon">⭐</span> Starboard
+        </button>
+        <button class="sidebar-item tab" data-tab="sticky">
+          <span class="si-icon">📌</span> Sticky
+        </button>
+        <button class="sidebar-item tab" data-tab="customcmds">
+          <span class="si-icon">💬</span> Custom Cmds
+        </button>
+        <button class="sidebar-item tab" data-tab="schedule">
+          <span class="si-icon">⏰</span> Scheduled
+        </button>
+      </div>
+
+      {% if is_bot_owner %}
+      <div class="sidebar-section">
+        <span class="sidebar-label">Owner</span>
+        <button class="sidebar-item tab" data-tab="console-link">
+          <span class="si-icon">🖥️</span> Console
+        </button>
+      </div>
+      {% endif %}
+
+    </nav>
+  </aside>
+
+  <!-- Sidebar overlay (mobile) -->
+  <div id="sidebar-overlay" class="mobile-overlay" onclick="closeSidebar()"></div>
+
+  <!-- ── Main content ────────────────────────────────────────────── -->
+  <div class="dash-main">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }}">{{ msg }}</div>
+      {% endfor %}{% endif %}
+    {% endwith %}
+
+    <!-- MODERATION TAB -->
+    <div id="tab-moderation" class="tab-content active">
+      <div class="card">
+        <h2>Mod Actions</h2>
+        <p class="text-muted">Take mod actions directly from the browser. Member can be username, display name, or ID.</p>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Member</label>
+            <input type="text" id="mod-member" class="input" placeholder="Username or ID"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Action</label>
+            <select id="mod-action" class="input">
+              <option value="warn">Warn</option>
+              <option value="mute">Mute</option>
+              <option value="kick">Kick</option>
+              <option value="ban">Ban</option>
+              <option value="tempban">Temp-Ban</option>
+              <option value="unban">Unban (ID only)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Reason</label>
+            <input type="text" id="mod-reason" class="input" placeholder="Reason..."/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Duration (mute / temp-ban)</label>
+            <input type="text" id="mod-duration" class="input" placeholder="e.g. 10m, 1h, 7d"/>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="doModAction()">Execute Action</button>
+        <div id="mod-result" style="margin-top:.75rem"></div>
+      </div>
+      <div class="card">
+        <h2>Auto-Ban Threshold</h2>
+        <p class="text-muted">Automatically ban a member when they reach this many warnings. Set to 0 to disable.</p>
+        <div class="input-row">
+          <input type="number" id="threshold-input" class="input" placeholder="0 = disabled" min="0" max="100" style="max-width:160px"/>
+          <button class="btn btn-primary" onclick="saveThreshold()">Save</button>
+        </div>
       </div>
     </div>
-  </div>
-</div>
 
-<!-- WARNINGS TAB -->
-<div id="tab-warnings" class="tab-content hidden">
-  <div class="card">
-    <h2>Warning History</h2>
-    <div id="warnings-table-wrap">
-      <div class="spinner"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ALERTS TAB -->
-<div id="tab-alerts" class="tab-content hidden">
-  <div class="card">
-    <h2>Alert Configuration</h2>
-    <p class="text-muted">Configure where automod alerts are sent and who gets pinged.</p>
-    <div id="alerts-form">
-      <div class="spinner"></div>
-    </div>
-    <button class="btn btn-primary" style="margin-top:1rem" onclick="saveAlerts()">Save</button>
-  </div>
-</div>
-
-<!-- MODERATION TAB -->
-<div id="tab-moderation" class="tab-content hidden">
-  <div class="card">
-    <h2>Moderation Actions</h2>
-    <p class="text-muted">Take mod actions directly from the browser. Member can be username, display name, or ID.</p>
-    <div class="form-grid">
-      <div class="form-group">
-        <label class="form-label">Member</label>
-        <input type="text" id="mod-member" class="input" placeholder="Username or ID"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Action</label>
-        <select id="mod-action" class="input">
-          <option value="warn">Warn</option>
-          <option value="mute">Mute</option>
-          <option value="kick">Kick</option>
-          <option value="ban">Ban</option>
-          <option value="tempban">Temp-Ban</option>
-          <option value="unban">Unban (ID only)</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Reason</label>
-        <input type="text" id="mod-reason" class="input" placeholder="Reason..."/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Duration (mute/tempban)</label>
-        <input type="text" id="mod-duration" class="input" placeholder="e.g. 10m, 1h, 7d"/>
+    <!-- WARNINGS TAB -->
+    <div id="tab-warnings" class="tab-content hidden">
+      <div class="card">
+        <h2>Warning History</h2>
+        <div id="warnings-table-wrap"><div class="spinner"></div></div>
       </div>
     </div>
-    <button class="btn btn-primary" onclick="doModAction()">Execute Action</button>
-    <div id="mod-result" style="margin-top:.75rem"></div>
-  </div>
-  <div class="card">
-    <h2>Auto-Ban Threshold</h2>
-    <p class="text-muted">Automatically ban a member when they reach this many warnings. Set to 0 to disable.</p>
-    <div class="input-row">
-      <input type="number" id="threshold-input" class="input" placeholder="0 = disabled" min="0" max="100" style="max-width:160px"/>
-      <button class="btn btn-primary" onclick="saveThreshold()">Save</button>
+
+    <!-- AUDIT LOG TAB -->
+    <div id="tab-auditlog" class="tab-content hidden">
+      <div class="card">
+        <h2>Recent Mod Actions</h2>
+        <div id="audit-table-wrap"><div class="spinner"></div></div>
+      </div>
     </div>
-  </div>
-</div>
 
-<!-- AUDIT LOG TAB -->
-<div id="tab-auditlog" class="tab-content hidden">
-  <div class="card">
-    <h2>Recent Mod Actions</h2>
-    <div id="audit-table-wrap"><div class="spinner"></div></div>
-  </div>
-</div>
-
-<!-- GIVEAWAYS TAB -->
-<div id="tab-giveaways" class="tab-content hidden">
-  <div class="card">
-    <h2>Active Giveaways</h2>
-    <div id="giveaways-list"><div class="spinner"></div></div>
-  </div>
-</div>
-
-<!-- REACTION ROLES TAB -->
-<div id="tab-reactionroles" class="tab-content hidden">
-  <div class="card">
-    <h2>Reaction Roles</h2>
-    <div id="rr-list"><div class="spinner"></div></div>
-  </div>
-</div>
-
-<!-- STICKY TAB -->
-<div id="tab-sticky" class="tab-content hidden">
-  <div class="card">
-    <h2>Sticky Messages</h2>
-    <div id="sticky-list"><div class="spinner"></div></div>
-  </div>
-</div>
-
-<!-- JOIN/LEAVE TAB -->
-<div id="tab-joinleave" class="tab-content hidden">
-  <div class="card">
-    <h2>Join / Leave Announcements</h2>
-    <p class="text-muted">Configure the channels and messages sent when members join or leave. Use <code>/joinmsg</code> and <code>/leavemsg</code> in Discord for message editing.</p>
-    <div id="joinleave-form" class="form-grid">
-      <div class="spinner"></div>
+    <!-- FILTERS TAB -->
+    <div id="tab-filters" class="tab-content hidden">
+      <div class="card">
+        <h2>Automod Filters</h2>
+        <p class="text-muted">Toggle each filter and set its punishment independently.</p>
+        <div id="filters-list" class="filter-list"><div class="spinner"></div></div>
+      </div>
     </div>
-    <button class="btn btn-primary" onclick="saveJoinLeave()">Save</button>
-  </div>
-  <div class="card" style="margin-top:1rem">
-    <h2>Welcome DM</h2>
-    <p class="text-muted">Send a private DM to new members when they join. Edit the message with <code>/welcomedm setup</code> in Discord.</p>
-    <div id="welcomedm-form">
-      <div class="spinner"></div>
+
+    <!-- WORDS TAB -->
+    <div id="tab-words" class="tab-content hidden">
+      <div class="card">
+        <h2>Banned Words</h2>
+        <div class="input-row">
+          <input type="text" id="word-input" class="input" placeholder="Enter word or phrase..." maxlength="100"/>
+          <button class="btn btn-primary" onclick="addWord()">Add</button>
+        </div>
+        <div id="words-list" class="tag-list"></div>
+      </div>
     </div>
-    <button class="btn btn-primary" style="margin-top:.75rem" onclick="saveWelcomeDM()">Save</button>
-  </div>
-</div>
 
-<!-- TICKETS TAB -->
-<div id="tab-tickets" class="tab-content hidden">
-  <div class="card">
-    <h2>Ticket System</h2>
-    <p class="text-muted">Configure the ticket system. Post the ticket panel with <code>/ticket panel</code> in Discord.</p>
-    <div id="tickets-form" class="form-grid">
-      <div class="spinner"></div>
+    <!-- ALERTS TAB -->
+    <div id="tab-alerts" class="tab-content hidden">
+      <div class="card">
+        <h2>Alert Configuration</h2>
+        <p class="text-muted">Configure where automod alerts are sent and who gets pinged.</p>
+        <div id="alerts-form"><div class="spinner"></div></div>
+        <button class="btn btn-primary" style="margin-top:1rem" onclick="saveAlerts()">Save</button>
+      </div>
     </div>
-    <button class="btn btn-primary" onclick="saveTickets()">Save</button>
-  </div>
-  <div class="card" style="margin-top:1rem">
-    <h2>Open Tickets</h2>
-    <div id="tickets-list"><div class="spinner"></div></div>
-  </div>
-</div>
 
-<!-- STARBOARD TAB -->
-<div id="tab-starboard" class="tab-content hidden">
-  <div class="card">
-    <h2>Starboard</h2>
-    <p class="text-muted">Repost popular messages to a dedicated channel when they hit the reaction threshold.</p>
-    <div id="starboard-form" class="form-grid">
-      <div class="spinner"></div>
+    <!-- LOGS TAB -->
+    <div id="tab-logs" class="tab-content hidden">
+      <div class="card">
+        <h2>Log Channels</h2>
+        <p class="text-muted">Assign a channel to each log type. Leave blank to disable.</p>
+        <div id="logs-form" class="form-grid"><div class="spinner"></div></div>
+        <button class="btn btn-primary" onclick="saveLogs()">Save Log Channels</button>
+      </div>
     </div>
-    <button class="btn btn-primary" onclick="saveStarboard()">Save</button>
-  </div>
-</div>
 
-<!-- CUSTOM COMMANDS TAB -->
-<div id="tab-customcmds" class="tab-content hidden">
-  <div class="card">
-    <h2>Custom Commands</h2>
-    <p class="text-muted">Members trigger these by typing <code>!commandname</code> in chat. Add commands with <code>/cc add</code> in Discord.</p>
-    <div id="customcmds-list"><div class="spinner"></div></div>
-  </div>
-</div>
+    <!-- FEATURES TAB -->
+    <div id="tab-features" class="tab-content hidden">
+      <div class="card">
+        <h2>Feature Toggles</h2>
+        <p class="text-muted">Enable or disable major bot features for this server.</p>
+        <div id="features-list" class="toggle-list"><div class="spinner"></div></div>
+      </div>
+    </div>
 
-<!-- SCHEDULED MESSAGES TAB -->
-<div id="tab-schedule" class="tab-content hidden">
-  <div class="card">
-    <h2>Scheduled Messages</h2>
-    <p class="text-muted">Messages pending delivery. Schedule new ones with <code>/schedule</code> in Discord.</p>
-    <div id="schedule-list"><div class="spinner"></div></div>
-  </div>
-</div>
+    <!-- ROLES TAB -->
+    <div id="tab-roles" class="tab-content hidden">
+      <div class="row-2col">
+        <div class="card">
+          <h2>Role Swap Rules</h2>
+          <p class="text-muted">Gaining the trigger role automatically removes the target role.</p>
+          <div id="swap-rules"></div>
+          <div class="input-row">
+            <select id="swap-trigger" class="input"></select>
+            <span style="align-self:center;color:var(--text3)">→ remove</span>
+            <select id="swap-remove" class="input"></select>
+            <input type="text" id="swap-note" class="input" placeholder="Note (optional)"/>
+            <button class="btn btn-primary" onclick="addSwap()">Add</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Role Grant Rules</h2>
+          <p class="text-muted">Gaining the trigger role automatically grants the target role.</p>
+          <div id="grant-rules"></div>
+          <div class="input-row">
+            <select id="grant-trigger" class="input"></select>
+            <span style="align-self:center;color:var(--text3)">→ grant</span>
+            <select id="grant-grant" class="input"></select>
+            <input type="text" id="grant-note" class="input" placeholder="Note (optional)"/>
+            <button class="btn btn-primary" onclick="addGrant()">Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
+    <!-- REACTION ROLES TAB -->
+    <div id="tab-reactionroles" class="tab-content hidden">
+      <div class="card">
+        <h2>Reaction Roles</h2>
+        <div id="rr-list"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- JOIN/LEAVE TAB -->
+    <div id="tab-joinleave" class="tab-content hidden">
+      <div class="card">
+        <h2>Join / Leave Announcements</h2>
+        <p class="text-muted">Configure the channels and messages sent when members join or leave.</p>
+        <div id="joinleave-form" class="form-grid"><div class="spinner"></div></div>
+        <button class="btn btn-primary" onclick="saveJoinLeave()">Save</button>
+      </div>
+      <div class="card">
+        <h2>Welcome DM</h2>
+        <p class="text-muted">Send a private DM to new members when they join. Edit the message with <code>/welcomedm setup</code> in Discord.</p>
+        <div id="welcomedm-form"><div class="spinner"></div></div>
+        <button class="btn btn-primary" style="margin-top:.75rem" onclick="saveWelcomeDM()">Save</button>
+      </div>
+    </div>
+
+    <!-- TICKETS TAB -->
+    <div id="tab-tickets" class="tab-content hidden">
+      <div class="card">
+        <h2>Ticket System</h2>
+        <p class="text-muted">Configure the ticket system. Post the panel with <code>/ticket panel</code> in Discord.</p>
+        <div id="tickets-form" class="form-grid"><div class="spinner"></div></div>
+        <button class="btn btn-primary" onclick="saveTickets()">Save</button>
+      </div>
+      <div class="card">
+        <h2>Open Tickets</h2>
+        <div id="tickets-list"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- GIVEAWAYS TAB -->
+    <div id="tab-giveaways" class="tab-content hidden">
+      <div class="card">
+        <h2>Active Giveaways</h2>
+        <div id="giveaways-list"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- STARBOARD TAB -->
+    <div id="tab-starboard" class="tab-content hidden">
+      <div class="card">
+        <h2>Starboard</h2>
+        <p class="text-muted">Repost popular messages to a dedicated channel when they hit the reaction threshold.</p>
+        <div id="starboard-form" class="form-grid"><div class="spinner"></div></div>
+        <button class="btn btn-primary" onclick="saveStarboard()">Save</button>
+      </div>
+    </div>
+
+    <!-- STICKY TAB -->
+    <div id="tab-sticky" class="tab-content hidden">
+      <div class="card">
+        <h2>Sticky Messages</h2>
+        <div id="sticky-list"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- CUSTOM COMMANDS TAB -->
+    <div id="tab-customcmds" class="tab-content hidden">
+      <div class="card">
+        <h2>Custom Commands</h2>
+        <p class="text-muted">Members trigger these by typing <code>!commandname</code> in chat. Add commands with <code>/cc add</code> in Discord.</p>
+        <div id="customcmds-list"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- SCHEDULED MESSAGES TAB -->
+    <div id="tab-schedule" class="tab-content hidden">
+      <div class="card">
+        <h2>Scheduled Messages</h2>
+        <p class="text-muted">Messages pending delivery. Schedule new ones with <code>/schedule</code> in Discord.</p>
+        <div id="schedule-list"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+  </div><!-- /.dash-main -->
+</div><!-- /.dash-layout -->
 {% endblock %}
+
 {% block scripts %}
 <script>
 const GUILD_ID = "{{ guild.id }}";
+
+function toggleSidebar() {
+  document.getElementById('dash-sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('dash-sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
 </script>
 <script src="/static/js/dashboard.js"></script>
 {% endblock %}

@@ -6,22 +6,42 @@
   <title>{% block title %}Aegixa{% endblock %}</title>
   <link rel="stylesheet" href="/static/css/style.css"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 </head>
 <body>
   <nav class="navbar">
-    <a class="navbar-brand" href="/">Aegixa</a>
+    <div style="display:flex;align-items:center;gap:.75rem">
+      {% block navbar_left %}
+        <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu" onclick="toggleSidebar()">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+      {% endblock %}
+      <a href="/" class="navbar-brand">
+        <span class="navbar-brand-icon">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
+          </svg>
+        </span>
+        Aegixa
+      </a>
+    </div>
     <div class="navbar-right">
       {% if session.user %}
-        <img class="avatar-sm" src="https://cdn.discordapp.com/avatars/{{ session.user.id }}/{{ session.user.avatar }}.png" alt="avatar" onerror="this.src='/static/img/default.png'"/>
+        {% set av = session.user.get('avatar') %}
+        {% if av %}
+          <img class="avatar-sm" src="https://cdn.discordapp.com/avatars/{{ session.user.id }}/{{ av }}.png" alt="avatar" onerror="this.src='/static/img/default.png'"/>
+        {% endif %}
         <span class="nav-username">{{ session.user.username }}</span>
-        <a class="btn btn-ghost" href="/auth/logout">Logout</a>
+        <a class="btn btn-ghost btn-sm" href="/auth/logout">Logout</a>
       {% else %}
-        <a class="btn btn-primary" href="/auth/login">Login with Discord</a>
+        <a class="btn btn-primary btn-sm" href="/auth/login">Login with Discord</a>
       {% endif %}
     </div>
   </nav>
 
+  {% block layout %}
   <main class="main-content">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -32,6 +52,7 @@
     {% endwith %}
     {% block content %}{% endblock %}
   </main>
+  {% endblock %}
 
   {% block scripts %}{% endblock %}
 </body>

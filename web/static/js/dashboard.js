@@ -52,6 +52,8 @@ document.querySelectorAll('.tab').forEach(btn => {
     btn.classList.add('active');
     document.getElementById(`tab-${tab}`)?.classList.remove('hidden');
     tabLoaders[tab]?.();
+    // Close sidebar drawer on mobile after selection
+    if (typeof closeSidebar === 'function') closeSidebar();
   });
 });
 
@@ -81,7 +83,7 @@ async function init() {
   ]);
   channelOptions = channels;
   roleOptions = roles;
-  loadLogs();
+  loadModeration();
 }
 
 init();
