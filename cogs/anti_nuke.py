@@ -212,18 +212,64 @@ class AntiNuke(commands.Cog):
             color=0xED4245,
             timestamp=discord.utils.utcnow(),
         )
-        embed.set_author(name=str(user), icon_url=user.display_avatar.url if hasattr(user, 'display_avatar') else discord.Embed.Empty)
+        avatar = user.display_avatar.url if hasattr(user, "display_avatar") else None
+        if avatar:
+            embed.set_author(name=str(user), icon_url=avatar)
+        else:
+            embed.set_author(name=str(user))
         embed.add_field(name="Perpetrator", value=f"{user.mention} (`{user.id}`)", inline=True)
         embed.add_field(name="Action", value=label, inline=True)
         embed.add_field(name="Punishment", value=result_line, inline=True)
         embed.set_footer(text=f"Server: {guild.name}")
 
-        # Send to modactions log channel
-        from cogs.logging_cog import send_log
-        await send_log(guild, "modactions", embed)
+        # Deliver alert: try modactions log → alert channel → system channel → first writable channel
+        await self._send_alert(guild, embed)
 
         # DM the owner
         self.bot.dispatch("owner_log", embed)
+
+    async def _send_alert(self, guild: discord.Guild, embed: discord.Embed):
+        """Send an alert embed to the best available channel in the guild."""
+        sent_to: set[int] = set()
+
+        async def _try(ch: discord.TextChannel | None):
+            if not ch or ch.id in sent_to:
+                return False
+            if not ch.permissions_for(guild.me).send_messages:
+                return False
+            try:
+                await ch.send(embed=embed)
+                sent_to.add(ch.id)
+                return True
+            except discord.HTTPException:
+                return False
+
+        # 1. Modactions log channel
+        from cogs.logging_cog import send_log
+        ch_id = await db.get_log_channel(guild.id, "modactions")
+        if ch_id:
+            await _try(guild.get_channel(ch_id))
+
+        # 2. Configured alert channel (automod alert channel)
+        g_row = await db.get_guild(guild.id)
+        if g_row and g_row.get("alert_channel_id"):
+            await _try(guild.get_channel(g_row["alert_channel_id"]))
+
+        # 3. General log channel
+        if not sent_to:
+            ch_id = await db.get_log_channel(guild.id, "general")
+            if ch_id:
+                await _try(guild.get_channel(ch_id))
+
+        # 4. Guild system channel
+        if not sent_to:
+            await _try(guild.system_channel)
+
+        # 5. First text channel the bot can write to
+        if not sent_to:
+            for ch in guild.text_channels:
+                if await _try(ch):
+                    break
 
     # -----------------------------------------------------------------------
     # /antinuke group
