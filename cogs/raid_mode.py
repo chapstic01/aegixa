@@ -12,7 +12,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import database as db
-from utils.helpers import success_embed, error_embed
+from utils.helpers import success_embed, error_embed, send_guild_alert
 from utils.permissions import is_staff
 from cogs.logging_cog import send_log
 from config import LOG_COLORS
@@ -87,33 +87,40 @@ class RaidMode(commands.Cog):
             asyncio.create_task(self._auto_lockdown(guild, settings))
 
     async def _auto_lockdown(self, guild: discord.Guild, settings: dict):
-        g_row = await db.get_guild(guild.id)
-        alert_ch = None
-        if g_row and g_row.get("alert_channel_id"):
-            alert_ch = guild.get_channel(g_row["alert_channel_id"])
-
-        embed = discord.Embed(
-            title=":warning: RAID DETECTED — Auto-Lockdown Active",
+        detect_embed = discord.Embed(
+            title="🚨 RAID DETECTED — Auto-Lockdown Active",
             description=(
                 "Unusual join rate detected. New members are being auto-kicked/banned.\n\n"
                 "Use `/raidmode False` to lift the lockdown manually, or wait 5 minutes."
             ),
             color=0xED4245,
+            timestamp=discord.utils.utcnow(),
         )
-        if alert_ch:
-            await alert_ch.send(embed=embed)
-        await send_log(guild, "modactions", embed)
+        detect_embed.add_field(
+            name="Join threshold",
+            value=f"{settings.get('raid_join_threshold', 10)} joins / {settings.get('raid_join_window', 10)}s",
+            inline=True,
+        )
+        detect_embed.add_field(
+            name="Action",
+            value=settings.get("raid_action", "kick").title(),
+            inline=True,
+        )
+        detect_embed.set_footer(text=guild.name)
+        await send_guild_alert(guild, detect_embed)
 
         await asyncio.sleep(300)  # auto-lift after 5 min
         if self._auto_locked.get(guild.id):
             self._auto_locked[guild.id] = False
             self._joins[guild.id].clear()
-            if alert_ch:
-                await alert_ch.send(embed=discord.Embed(
-                    title=":white_check_mark: Raid Lockdown Lifted",
-                    description="Auto-lifted after 5 minutes. Monitor for follow-up attacks.",
-                    color=0x57F287,
-                ))
+            lift_embed = discord.Embed(
+                title="✅ Raid Lockdown Lifted",
+                description="Auto-lifted after 5 minutes. Monitor for follow-up attacks.",
+                color=0x57F287,
+                timestamp=discord.utils.utcnow(),
+            )
+            lift_embed.set_footer(text=guild.name)
+            await send_guild_alert(guild, lift_embed)
 
     @app_commands.command(name="raidmode", description="Enable or disable raid mode (locks all channels + strict automod)")
     @app_commands.describe(enabled="True to enable, False to disable")
@@ -143,27 +150,20 @@ class RaidMode(commands.Cog):
                 except discord.HTTPException:
                     failed += 1
 
-            embed = discord.Embed(
-                title=":warning: RAID MODE ENABLED",
+            enable_embed = discord.Embed(
+                title="🚨 RAID MODE ENABLED",
                 description=(
                     f"All channels have been locked.\n"
                     f"Locked: **{locked}** | Failed: **{failed}**\n\n"
                     f"Disable with `/raidmode False` when the raid is over."
                 ),
                 color=0xED4245,
+                timestamp=discord.utils.utcnow(),
             )
-            await interaction.followup.send(embed=embed, ephemeral=False)
-
-            # Announce in the alert channel if configured
-            g_row = await db.get_guild(guild.id)
-            if g_row and g_row.get("alert_channel_id"):
-                alert_ch = guild.get_channel(g_row["alert_channel_id"])
-                if alert_ch:
-                    await alert_ch.send(embed=discord.Embed(
-                        title=":warning: RAID MODE ACTIVE",
-                        description="The server is currently in raid mode. All channels are locked.",
-                        color=0xED4245,
-                    ))
+            enable_embed.add_field(name="Triggered by", value=interaction.user.mention, inline=True)
+            enable_embed.set_footer(text=guild.name)
+            await interaction.followup.send(embed=enable_embed, ephemeral=False)
+            await send_guild_alert(guild, enable_embed)
         else:
             # Unlock all text channels
             for channel in guild.text_channels:
@@ -178,23 +178,19 @@ class RaidMode(commands.Cog):
                 except discord.HTTPException:
                     failed += 1
 
-            embed = discord.Embed(
-                title=":white_check_mark: Raid Mode Disabled",
+            disable_embed = discord.Embed(
+                title="✅ Raid Mode Disabled",
                 description=f"All channels have been unlocked.\nUnlocked: **{locked}** | Failed: **{failed}**",
                 color=0x57F287,
+                timestamp=discord.utils.utcnow(),
             )
-            await interaction.followup.send(embed=embed, ephemeral=False)
+            disable_embed.add_field(name="Disabled by", value=interaction.user.mention, inline=True)
+            disable_embed.set_footer(text=guild.name)
+            await interaction.followup.send(embed=disable_embed, ephemeral=False)
+            await send_guild_alert(guild, disable_embed)
 
         action = "enabled" if enabled else "disabled"
         await db.log_mod_action(guild.id, f"raid_mode_{action}", interaction.user.id)
-        await send_log(guild, "modactions", discord.Embed(
-            description=f":warning: **{interaction.user}** {action} **raid mode** — {locked} channels affected",
-            color=LOG_COLORS["modactions"],
-        ))
-        await send_log(guild, "general", discord.Embed(
-            description=f":warning: **{interaction.user}** {action} **raid mode**",
-            color=LOG_COLORS["general"],
-        ))
 
 
 async def setup(bot: commands.Bot):

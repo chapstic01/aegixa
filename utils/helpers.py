@@ -125,3 +125,52 @@ def success_embed(description: str) -> discord.Embed:
 
 def info_embed(title: str, description: str = "", color: int = 0x5865F2) -> discord.Embed:
     return discord.Embed(title=title, description=description, color=color)
+
+
+async def send_guild_alert(guild: discord.Guild, embed: discord.Embed) -> None:
+    """
+    Deliver an alert embed to the best available channel in the guild.
+
+    Fallback order (skips duplicates and channels the bot can't write to):
+      1. modactions log channel
+      2. configured alert channel (guilds.alert_channel_id)
+      3. general log channel
+      4. guild system channel
+      5. first writable text channel
+    """
+    import database as db
+
+    sent_to: set[int] = set()
+
+    async def _try(ch) -> bool:
+        if not ch or ch.id in sent_to:
+            return False
+        if not ch.permissions_for(guild.me).send_messages:
+            return False
+        try:
+            await ch.send(embed=embed)
+            sent_to.add(ch.id)
+            return True
+        except discord.HTTPException:
+            return False
+
+    ch_id = await db.get_log_channel(guild.id, "modactions")
+    if ch_id:
+        await _try(guild.get_channel(ch_id))
+
+    g_row = await db.get_guild(guild.id)
+    if g_row and g_row.get("alert_channel_id"):
+        await _try(guild.get_channel(g_row["alert_channel_id"]))
+
+    if not sent_to:
+        ch_id = await db.get_log_channel(guild.id, "general")
+        if ch_id:
+            await _try(guild.get_channel(ch_id))
+
+    if not sent_to:
+        await _try(guild.system_channel)
+
+    if not sent_to:
+        for ch in guild.text_channels:
+            if await _try(ch):
+                break

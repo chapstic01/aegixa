@@ -19,7 +19,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import database as db
-from utils.helpers import error_embed, success_embed, info_embed
+from utils.helpers import error_embed, success_embed, info_embed, send_guild_alert
 from utils.permissions import is_admin
 import logging
 
@@ -229,47 +229,7 @@ class AntiNuke(commands.Cog):
         self.bot.dispatch("owner_log", embed)
 
     async def _send_alert(self, guild: discord.Guild, embed: discord.Embed):
-        """Send an alert embed to the best available channel in the guild."""
-        sent_to: set[int] = set()
-
-        async def _try(ch: discord.TextChannel | None):
-            if not ch or ch.id in sent_to:
-                return False
-            if not ch.permissions_for(guild.me).send_messages:
-                return False
-            try:
-                await ch.send(embed=embed)
-                sent_to.add(ch.id)
-                return True
-            except discord.HTTPException:
-                return False
-
-        # 1. Modactions log channel
-        from cogs.logging_cog import send_log
-        ch_id = await db.get_log_channel(guild.id, "modactions")
-        if ch_id:
-            await _try(guild.get_channel(ch_id))
-
-        # 2. Configured alert channel (automod alert channel)
-        g_row = await db.get_guild(guild.id)
-        if g_row and g_row.get("alert_channel_id"):
-            await _try(guild.get_channel(g_row["alert_channel_id"]))
-
-        # 3. General log channel
-        if not sent_to:
-            ch_id = await db.get_log_channel(guild.id, "general")
-            if ch_id:
-                await _try(guild.get_channel(ch_id))
-
-        # 4. Guild system channel
-        if not sent_to:
-            await _try(guild.system_channel)
-
-        # 5. First text channel the bot can write to
-        if not sent_to:
-            for ch in guild.text_channels:
-                if await _try(ch):
-                    break
+        await send_guild_alert(guild, embed)
 
     # -----------------------------------------------------------------------
     # /antinuke group
@@ -283,10 +243,52 @@ class AntiNuke(commands.Cog):
         cfg = await _get_config(interaction.guild_id)
         cfg["enabled"] = True
         await _save_config(interaction.guild_id, cfg)
+
+        # Confirmation to the admin who ran the command
         await interaction.response.send_message(
             embed=success_embed("Anti-nuke is now **enabled**. Use `/antinuke status` to review thresholds."),
             ephemeral=True,
         )
+
+        # Public setup embed sent to the best available channel
+        threshold_lines = []
+        for action, label in _ACTION_LABELS.items():
+            count, window = _resolve_threshold(cfg, action)
+            threshold_lines.append(f"**{label}** — {count} in {window}s")
+
+        setup_embed = discord.Embed(
+            title="🛡️ Anti-Nuke Protection Enabled",
+            description=(
+                "This server is now protected against rogue admins and compromised bots.\n"
+                "Any user exceeding the limits below will be automatically punished."
+            ),
+            color=0xdc2626,
+            timestamp=discord.utils.utcnow(),
+        )
+        setup_embed.add_field(
+            name="Punishment",
+            value=cfg["punishment"].title(),
+            inline=True,
+        )
+        setup_embed.add_field(
+            name="Enabled by",
+            value=interaction.user.mention,
+            inline=True,
+        )
+        setup_embed.add_field(
+            name="Thresholds",
+            value="\n".join(threshold_lines),
+            inline=False,
+        )
+        wl = cfg["whitelist"]
+        if wl:
+            setup_embed.add_field(
+                name="Whitelisted users",
+                value=" ".join(f"<@{uid}>" for uid in wl),
+                inline=False,
+            )
+        setup_embed.set_footer(text="Use /antinuke threshold to adjust limits · /antinuke disable to turn off")
+        await send_guild_alert(interaction.guild, setup_embed)
 
     @antinuke.command(name="disable", description="Disable anti-nuke protection")
     @is_admin()
