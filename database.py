@@ -12,6 +12,17 @@ from typing import Any, Optional
 
 DB_PATH = os.getenv("DB_PATH", "aegixa.db")
 
+import logging as _logging
+_log = _logging.getLogger(__name__)
+if DB_PATH == "aegixa.db":
+    _log.warning(
+        "DB_PATH is not set — using ephemeral './aegixa.db'. "
+        "ALL DATA WILL BE LOST ON REDEPLOY. "
+        "Set DB_PATH=/data/aegixa.db and add a Railway Volume mounted at /data to persist data."
+    )
+else:
+    _log.info("Database path: %s", DB_PATH)
+
 # ---------------------------------------------------------------------------
 # Schema
 # ---------------------------------------------------------------------------
@@ -340,6 +351,14 @@ CREATE TABLE IF NOT EXISTS polls (
     ended       INTEGER DEFAULT 0,
     created_by  INTEGER,
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS anti_nuke_config (
+    guild_id    INTEGER PRIMARY KEY,
+    enabled     INTEGER DEFAULT 0,
+    punishment  TEXT DEFAULT 'kick',
+    whitelist   TEXT DEFAULT '[]',
+    thresholds  TEXT DEFAULT '{}'
 );
 """
 

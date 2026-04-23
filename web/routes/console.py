@@ -49,18 +49,24 @@ def get_messages(guild_id, channel_id):
     before_id = request.args.get("before")
     limit = min(int(request.args.get("limit", 50)), 100)
 
+    import discord
+
     async def fetch():
         kwargs = {"limit": limit}
         if before_id:
-            kwargs["before"] = discord_obj = await channel.fetch_message(int(before_id))
+            kwargs["before"] = discord.Object(id=int(before_id))
         msgs = []
         async for msg in channel.history(**kwargs):
             msgs.append(msg)
         return msgs
 
-    import discord
     future = asyncio.run_coroutine_threadsafe(fetch(), bot.loop)
-    messages = future.result(timeout=15)
+    try:
+        messages = future.result(timeout=15)
+    except discord.Forbidden:
+        return jsonify({"error": "Bot cannot read this channel"}), 403
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
     result = []
     for msg in messages:
@@ -111,11 +117,40 @@ def send_message(guild_id, channel_id):
     if not content:
         return jsonify({"error": "Content required"}), 400
 
-    async def send():
-        await channel.send(content)
+    import discord
 
-    asyncio.run_coroutine_threadsafe(send(), bot.loop).result(timeout=10)
-    return jsonify({"ok": True})
+    async def send():
+        return await channel.send(content)
+
+    future = asyncio.run_coroutine_threadsafe(send(), bot.loop)
+    try:
+        msg = future.result(timeout=10)
+    except discord.Forbidden:
+        return jsonify({"error": "Bot lacks permission to send messages in this channel"}), 403
+    except discord.HTTPException as e:
+        return jsonify({"error": f"Discord error: {e.text}"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    return jsonify({
+        "ok": True,
+        "message": {
+            "id": str(msg.id),
+            "content": msg.content,
+            "author": {
+                "id": str(msg.author.id),
+                "name": msg.author.display_name,
+                "avatar": str(msg.author.display_avatar.url),
+                "bot": msg.author.bot,
+            },
+            "timestamp": msg.created_at.isoformat(),
+            "edited_at": None,
+            "embeds": [],
+            "attachments": [],
+            "reactions": [],
+            "mentions": {},
+        },
+    })
 
 
 @console_bp.get("/guild/<int:guild_id>/members")

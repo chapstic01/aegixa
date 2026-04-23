@@ -164,15 +164,29 @@ async function sendMessage() {
   const content = input.value.trim();
   if (!content || !currentGuildId || !currentChannelId) return;
 
+  input.disabled = true;
   const res = await fetch(`/console/guild/${currentGuildId}/channel/${currentChannelId}/send`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ content }),
   });
-  if (res.ok) {
+  input.disabled = false;
+
+  const data = await res.json();
+  if (res.ok && data.ok) {
     input.value = '';
+    const container = document.getElementById('messages-container');
+    container.appendChild(renderMessage(data.message));
+    container.scrollTop = container.scrollHeight;
   } else {
-    alert('Failed to send message.');
+    const errMsg = data.error || 'Failed to send message.';
+    const errEl = document.createElement('div');
+    errEl.className = 'alert alert-error';
+    errEl.style.cssText = 'margin:.5rem 1rem';
+    errEl.textContent = errMsg;
+    const sendArea = document.getElementById('send-area');
+    sendArea.insertAdjacentElement('beforebegin', errEl);
+    setTimeout(() => errEl.remove(), 5000);
   }
 }
 
