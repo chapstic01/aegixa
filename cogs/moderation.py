@@ -16,7 +16,24 @@ import logging
 log = logging.getLogger(__name__)
 
 
-async def _log_general(bot: commands.Bot, guild: discord.Guild, description: str, color: int = LOG_COLORS["general"]):
+# ---------------------------------------------------------------------------
+# Log helpers
+# ---------------------------------------------------------------------------
+
+async def _send_modlog(bot: commands.Bot, guild: discord.Guild, embed: discord.Embed):
+    """Send to modactions log channel and forward to owner DM."""
+    ch_id = await db.get_log_channel(guild.id, "modactions")
+    if ch_id:
+        ch = guild.get_channel(ch_id)
+        if ch:
+            try:
+                await ch.send(embed=embed)
+            except discord.HTTPException:
+                pass
+    bot.dispatch("owner_log", embed)
+
+
+async def _send_general(bot: commands.Bot, guild: discord.Guild, description: str, color: int = LOG_COLORS["general"]):
     ch_id = await db.get_log_channel(guild.id, "general")
     if ch_id:
         ch = guild.get_channel(ch_id)
@@ -28,17 +45,24 @@ async def _log_general(bot: commands.Bot, guild: discord.Guild, description: str
                 pass
 
 
-async def _log_modaction(guild: discord.Guild, description: str):
-    ch_id = await db.get_log_channel(guild.id, "modactions")
-    if ch_id:
-        ch = guild.get_channel(ch_id)
-        if ch:
-            try:
-                embed = discord.Embed(description=description, color=LOG_COLORS["modactions"], timestamp=discord.utils.utcnow())
-                await ch.send(embed=embed)
-            except discord.HTTPException:
-                pass
+def _mod_embed(
+    title: str,
+    color: int,
+    moderator: discord.Member | discord.User,
+    target: discord.Member | discord.User | None = None,
+) -> discord.Embed:
+    embed = discord.Embed(title=title, color=color, timestamp=discord.utils.utcnow())
+    embed.set_author(name=str(moderator), icon_url=moderator.display_avatar.url)
+    if target:
+        embed.set_thumbnail(url=target.display_avatar.url)
+        embed.add_field(name="Target", value=f"{target.mention} (`{target.id}`)", inline=True)
+    embed.add_field(name="Moderator", value=moderator.mention, inline=True)
+    return embed
 
+
+# ---------------------------------------------------------------------------
+# Warn group
+# ---------------------------------------------------------------------------
 
 class WarnGroup(app_commands.Group):
     def __init__(self):
@@ -67,9 +91,13 @@ class WarnGroup(app_commands.Group):
         await interaction.followup.send(embed=success_embed(
             f"**{target.display_name}** has been warned (ID: `{warn_id}`).\nReason: {reason} | Total: **{len(warnings)}**"
         ), ephemeral=True)
-        await _log_general(interaction.client, interaction.guild,
-            f":warning: **{interaction.user}** warned **{target}** — Reason: {reason} (ID: {warn_id})")
-        await _log_modaction(interaction.guild, f":warning: **{interaction.user}** warned **{target}** — {reason} (warn #{warn_id}, total: {len(warnings)})")
+
+        embed = _mod_embed("⚠️ Member Warned", 0xFEE75C, interaction.user, target)
+        embed.add_field(name="Reason", value=reason, inline=False)
+        embed.add_field(name="Warning ID", value=f"`#{warn_id}`", inline=True)
+        embed.add_field(name="Total Warnings", value=str(len(warnings)), inline=True)
+        embed.add_field(name="Server", value=f"{interaction.guild.name} (`{interaction.guild_id}`)", inline=False)
+        await _send_modlog(interaction.client, interaction.guild, embed)
         await db.log_mod_action(interaction.guild_id, "warn", interaction.user.id, target.id, reason)
 
         # Auto-ban threshold check
@@ -84,7 +112,11 @@ class WarnGroup(app_commands.Group):
             except discord.Forbidden:
                 pass
             await interaction.guild.ban(target, reason=f"[Aegixa Auto-ban] Reached {threshold} warnings", delete_message_days=0)
-            await _log_modaction(interaction.guild, f":hammer: **{target}** auto-banned after reaching **{threshold}** warnings.")
+            auto_embed = _mod_embed("🔨 Auto-ban: Warning Threshold", 0xED4245, interaction.client.user, target)
+            auto_embed.add_field(name="Threshold", value=str(threshold), inline=True)
+            auto_embed.add_field(name="Total Warnings", value=str(len(warnings)), inline=True)
+            auto_embed.add_field(name="Server", value=f"{interaction.guild.name} (`{interaction.guild_id}`)", inline=False)
+            await _send_modlog(interaction.client, interaction.guild, auto_embed)
             await interaction.followup.send(embed=discord.Embed(
                 description=f":hammer: **{target.display_name}** has been automatically banned for reaching **{threshold}** warnings.",
                 color=0xED4245,
@@ -124,7 +156,12 @@ class WarnGroup(app_commands.Group):
         removed = await db.remove_warning(interaction.guild_id, warning_id)
         if removed:
             await interaction.response.send_message(embed=success_embed(f"Warning `{warning_id}` removed."), ephemeral=True)
-            await _log_general(interaction.client, interaction.guild, f":wastebasket: **{interaction.user}** removed warning `{warning_id}`")
+            embed = discord.Embed(title="🗑️ Warning Removed", color=0x57F287, timestamp=discord.utils.utcnow())
+            embed.set_author(name=str(interaction.user), icon_url=interaction.user.display_avatar.url)
+            embed.add_field(name="Warning ID", value=f"`#{warning_id}`", inline=True)
+            embed.add_field(name="Moderator", value=interaction.user.mention, inline=True)
+            embed.add_field(name="Server", value=f"{interaction.guild.name} (`{interaction.guild_id}`)", inline=False)
+            await _send_modlog(interaction.client, interaction.guild, embed)
         else:
             await interaction.response.send_message(embed=error_embed(f"Warning `{warning_id}` not found."), ephemeral=True)
 
@@ -148,13 +185,31 @@ class Moderation(commands.Cog):
             return await interaction.followup.send(embed=error_embed(f"Member `{member}` not found."), ephemeral=True)
         if target.top_role >= interaction.user.top_role and interaction.user != interaction.guild.owner:
             return await interaction.followup.send(embed=error_embed("You cannot ban someone with an equal or higher role."), ephemeral=True)
+
         try:
-            await target.send(embed=discord.Embed(description=f":hammer: You have been banned from **{interaction.guild.name}**.\nReason: {reason}", color=0xED4245))
+            await target.send(embed=discord.Embed(
+                description=f":hammer: You have been banned from **{interaction.guild.name}**.\nReason: {reason}",
+                color=0xED4245,
+            ))
         except discord.Forbidden:
             pass
-        await interaction.guild.ban(target, reason=f"{interaction.user}: {reason}", delete_message_days=max(0, min(7, delete_days)))
+
+        delete_days = max(0, min(7, delete_days))
+        await interaction.guild.ban(target, reason=f"{interaction.user}: {reason}", delete_message_days=delete_days)
         await interaction.followup.send(embed=success_embed(f"**{target}** has been banned.\nReason: {reason}"), ephemeral=True)
-        await _log_general(interaction.client, interaction.guild, f":hammer: **{interaction.user}** banned **{target}** — {reason}", LOG_COLORS["spam"])
+
+        embed = _mod_embed("🔨 Member Banned", 0xED4245, interaction.user, target)
+        embed.add_field(name="Reason", value=reason, inline=False)
+        if delete_days:
+            embed.add_field(name="Messages Deleted", value=f"{delete_days} day(s)", inline=True)
+        embed.add_field(name="Account Age", value=f"<t:{int(target.created_at.timestamp())}:R>", inline=True)
+        if target.joined_at:
+            embed.add_field(name="Was Member For", value=f"<t:{int(target.joined_at.timestamp())}:R>", inline=True)
+        roles = [r.mention for r in target.roles if r != interaction.guild.default_role]
+        if roles:
+            embed.add_field(name="Roles", value=" ".join(roles[:10]), inline=False)
+        embed.add_field(name="Server", value=f"{interaction.guild.name} (`{interaction.guild_id}`)", inline=False)
+        await _send_modlog(interaction.client, interaction.guild, embed)
 
     # -----------------------------------------------------------------------
     # Unban
@@ -173,7 +228,15 @@ class Moderation(commands.Cog):
             user = await self.bot.fetch_user(uid)
             await interaction.guild.unban(user, reason=f"{interaction.user}: {reason}")
             await interaction.followup.send(embed=success_embed(f"**{user}** has been unbanned."), ephemeral=True)
-            await _log_general(interaction.client, interaction.guild, f":unlock: **{interaction.user}** unbanned `{user}` — {reason}")
+
+            embed = discord.Embed(title="🔓 Member Unbanned", color=0x57F287, timestamp=discord.utils.utcnow())
+            embed.set_author(name=str(interaction.user), icon_url=interaction.user.display_avatar.url)
+            embed.set_thumbnail(url=user.display_avatar.url)
+            embed.add_field(name="User", value=f"{user.mention} (`{user.id}`)", inline=True)
+            embed.add_field(name="Moderator", value=interaction.user.mention, inline=True)
+            embed.add_field(name="Reason", value=reason, inline=False)
+            embed.add_field(name="Server", value=f"{interaction.guild.name} (`{interaction.guild_id}`)", inline=False)
+            await _send_modlog(interaction.client, interaction.guild, embed)
         except discord.NotFound:
             await interaction.followup.send(embed=error_embed("That user is not banned or doesn't exist."), ephemeral=True)
 
@@ -191,13 +254,29 @@ class Moderation(commands.Cog):
             return await interaction.followup.send(embed=error_embed(f"Member `{member}` not found."), ephemeral=True)
         if target.top_role >= interaction.user.top_role and interaction.user != interaction.guild.owner:
             return await interaction.followup.send(embed=error_embed("You cannot kick someone with an equal or higher role."), ephemeral=True)
+
         try:
-            await target.send(embed=discord.Embed(description=f":boot: You have been kicked from **{interaction.guild.name}**.\nReason: {reason}", color=0xED4245))
+            await target.send(embed=discord.Embed(
+                description=f":boot: You have been kicked from **{interaction.guild.name}**.\nReason: {reason}",
+                color=0xED4245,
+            ))
         except discord.Forbidden:
             pass
+
+        joined_ts = int(target.joined_at.timestamp()) if target.joined_at else None
+        roles = [r.mention for r in target.roles if r != interaction.guild.default_role]
         await target.kick(reason=f"{interaction.user}: {reason}")
         await interaction.followup.send(embed=success_embed(f"**{target}** has been kicked.\nReason: {reason}"), ephemeral=True)
-        await _log_general(interaction.client, interaction.guild, f":boot: **{interaction.user}** kicked **{target}** — {reason}", LOG_COLORS["spam"])
+
+        embed = _mod_embed("👢 Member Kicked", 0xE67E22, interaction.user, target)
+        embed.add_field(name="Reason", value=reason, inline=False)
+        embed.add_field(name="Account Age", value=f"<t:{int(target.created_at.timestamp())}:R>", inline=True)
+        if joined_ts:
+            embed.add_field(name="Joined", value=f"<t:{joined_ts}:R>", inline=True)
+        if roles:
+            embed.add_field(name="Roles", value=" ".join(roles[:10]), inline=False)
+        embed.add_field(name="Server", value=f"{interaction.guild.name} (`{interaction.guild_id}`)", inline=False)
+        await _send_modlog(interaction.client, interaction.guild, embed)
 
     # -----------------------------------------------------------------------
     # Mute (timeout)
@@ -218,8 +297,16 @@ class Moderation(commands.Cog):
         until = discord.utils.utcnow() + timedelta(seconds=secs)
         await target.timeout(until, reason=f"{interaction.user}: {reason}")
         await db.add_mute_record(interaction.guild_id, target.id, interaction.user.id, reason, secs)
-        await interaction.followup.send(embed=success_embed(f"**{target}** has been muted for **{format_duration(secs)}**.\nReason: {reason}"), ephemeral=True)
-        await _log_general(interaction.client, interaction.guild, f":mute: **{interaction.user}** muted **{target}** for {format_duration(secs)} — {reason}")
+        await interaction.followup.send(embed=success_embed(
+            f"**{target}** has been muted for **{format_duration(secs)}**.\nReason: {reason}"
+        ), ephemeral=True)
+
+        embed = _mod_embed("🔇 Member Muted", 0xFEE75C, interaction.user, target)
+        embed.add_field(name="Duration", value=format_duration(secs), inline=True)
+        embed.add_field(name="Expires", value=f"<t:{int(until.timestamp())}:F>", inline=True)
+        embed.add_field(name="Reason", value=reason, inline=False)
+        embed.add_field(name="Server", value=f"{interaction.guild.name} (`{interaction.guild_id}`)", inline=False)
+        await _send_modlog(interaction.client, interaction.guild, embed)
 
     # -----------------------------------------------------------------------
     # Unmute
@@ -235,7 +322,11 @@ class Moderation(commands.Cog):
             return await interaction.followup.send(embed=error_embed(f"Member `{member}` not found."), ephemeral=True)
         await target.timeout(None, reason=f"{interaction.user}: {reason}")
         await interaction.followup.send(embed=success_embed(f"**{target}**'s mute has been removed."), ephemeral=True)
-        await _log_general(interaction.client, interaction.guild, f":sound: **{interaction.user}** unmuted **{target}** — {reason}")
+
+        embed = _mod_embed("🔊 Timeout Removed", 0x57F287, interaction.user, target)
+        embed.add_field(name="Reason", value=reason, inline=False)
+        embed.add_field(name="Server", value=f"{interaction.guild.name} (`{interaction.guild_id}`)", inline=False)
+        await _send_modlog(interaction.client, interaction.guild, embed)
 
     # -----------------------------------------------------------------------
     # Lock / Unlock
@@ -253,7 +344,14 @@ class Moderation(commands.Cog):
             description=f":lock: This channel has been locked.\nReason: {reason}",
             color=0xED4245,
         ))
-        await _log_general(interaction.client, interaction.guild, f":lock: **{interaction.user}** locked {channel.mention} — {reason}")
+
+        embed = discord.Embed(title="🔒 Channel Locked", color=0xED4245, timestamp=discord.utils.utcnow())
+        embed.set_author(name=str(interaction.user), icon_url=interaction.user.display_avatar.url)
+        embed.add_field(name="Channel", value=channel.mention, inline=True)
+        embed.add_field(name="Moderator", value=interaction.user.mention, inline=True)
+        embed.add_field(name="Reason", value=reason, inline=False)
+        embed.add_field(name="Server", value=f"{interaction.guild.name} (`{interaction.guild_id}`)", inline=False)
+        await _send_modlog(interaction.client, interaction.guild, embed)
 
     @app_commands.command(name="unlock", description="Unlock the current channel")
     @app_commands.describe(reason="Reason for unlocking")
@@ -267,7 +365,14 @@ class Moderation(commands.Cog):
             description=f":unlock: This channel has been unlocked.\nReason: {reason}",
             color=0x57F287,
         ))
-        await _log_general(interaction.client, interaction.guild, f":unlock: **{interaction.user}** unlocked {channel.mention} — {reason}")
+
+        embed = discord.Embed(title="🔓 Channel Unlocked", color=0x57F287, timestamp=discord.utils.utcnow())
+        embed.set_author(name=str(interaction.user), icon_url=interaction.user.display_avatar.url)
+        embed.add_field(name="Channel", value=channel.mention, inline=True)
+        embed.add_field(name="Moderator", value=interaction.user.mention, inline=True)
+        embed.add_field(name="Reason", value=reason, inline=False)
+        embed.add_field(name="Server", value=f"{interaction.guild.name} (`{interaction.guild_id}`)", inline=False)
+        await _send_modlog(interaction.client, interaction.guild, embed)
 
     # -----------------------------------------------------------------------
     # Slowmode
@@ -281,9 +386,12 @@ class Moderation(commands.Cog):
         await interaction.channel.edit(slowmode_delay=seconds)
         if seconds == 0:
             await interaction.response.send_message(embed=success_embed("Slowmode disabled."), ephemeral=True)
+            await _send_general(interaction.client, interaction.guild,
+                f":stopwatch: **{interaction.user}** disabled slowmode in {interaction.channel.mention}")
         else:
             await interaction.response.send_message(embed=success_embed(f"Slowmode set to **{format_duration(seconds)}**."), ephemeral=True)
-        await _log_general(interaction.client, interaction.guild, f":stopwatch: **{interaction.user}** set slowmode to {seconds}s in {interaction.channel.mention}")
+            await _send_general(interaction.client, interaction.guild,
+                f":stopwatch: **{interaction.user}** set slowmode to {format_duration(seconds)} in {interaction.channel.mention}")
 
     # -----------------------------------------------------------------------
     # Purge
@@ -297,7 +405,15 @@ class Moderation(commands.Cog):
         amount = max(1, min(100, amount))
         deleted = await interaction.channel.purge(limit=amount, reason=f"{interaction.user}: {reason}")
         await interaction.followup.send(embed=success_embed(f"Deleted **{len(deleted)}** messages."), ephemeral=True)
-        await _log_general(interaction.client, interaction.guild, f":wastebasket: **{interaction.user}** purged {len(deleted)} messages in {interaction.channel.mention} — {reason}")
+
+        embed = discord.Embed(title="🗑️ Messages Purged", color=0x99AAB5, timestamp=discord.utils.utcnow())
+        embed.set_author(name=str(interaction.user), icon_url=interaction.user.display_avatar.url)
+        embed.add_field(name="Channel", value=interaction.channel.mention, inline=True)
+        embed.add_field(name="Moderator", value=interaction.user.mention, inline=True)
+        embed.add_field(name="Deleted", value=str(len(deleted)), inline=True)
+        embed.add_field(name="Reason", value=reason, inline=False)
+        embed.add_field(name="Server", value=f"{interaction.guild.name} (`{interaction.guild_id}`)", inline=False)
+        await _send_modlog(interaction.client, interaction.guild, embed)
 
     # -----------------------------------------------------------------------
     # Nick
@@ -316,7 +432,12 @@ class Moderation(commands.Cog):
         await target.edit(nick=new)
         action = f"reset to `{target.name}`" if not new else f"changed to `{new}`"
         await interaction.followup.send(embed=success_embed(f"Nickname for **{old}** {action}."), ephemeral=True)
-        await _log_general(interaction.client, interaction.guild, f":pencil: **{interaction.user}** changed **{old}**'s nick {action}")
+
+        embed = _mod_embed("✏️ Nickname Changed", LOG_COLORS["roles"], interaction.user, target)
+        embed.add_field(name="Before", value=f"`{old}`", inline=True)
+        embed.add_field(name="After", value=f"`{new or target.name}`", inline=True)
+        embed.add_field(name="Server", value=f"{interaction.guild.name} (`{interaction.guild_id}`)", inline=False)
+        await _send_modlog(interaction.client, interaction.guild, embed)
 
     # -----------------------------------------------------------------------
     # Role color
@@ -333,7 +454,8 @@ class Moderation(commands.Cog):
             return await interaction.response.send_message(embed=error_embed("Invalid hex colour. Use format `#FF5733`."), ephemeral=True)
         await role.edit(color=discord.Color(int_color))
         await interaction.response.send_message(embed=success_embed(f"**{role.name}** colour set to `#{color.upper()}`."), ephemeral=True)
-        await _log_general(interaction.client, interaction.guild, f":art: **{interaction.user}** changed **{role.name}** colour to `#{color.upper()}`")
+        await _send_general(interaction.client, interaction.guild,
+            f":art: **{interaction.user}** changed **{role.name}** colour to `#{color.upper()}`")
 
     # -----------------------------------------------------------------------
     # Voice move
@@ -351,7 +473,8 @@ class Moderation(commands.Cog):
             return await interaction.followup.send(embed=error_embed(f"**{target.display_name}** is not in a voice channel."), ephemeral=True)
         await target.move_to(channel)
         await interaction.followup.send(embed=success_embed(f"**{target.display_name}** moved to **{channel.name}**."), ephemeral=True)
-        await _log_general(interaction.client, interaction.guild, f":headphones: **{interaction.user}** moved **{target}** to **{channel.name}**")
+        await _send_general(interaction.client, interaction.guild,
+            f":headphones: **{interaction.user}** moved **{target}** to **{channel.name}**")
 
     # -----------------------------------------------------------------------
     # Role toggle
@@ -368,11 +491,13 @@ class Moderation(commands.Cog):
         if role in target.roles:
             await target.remove_roles(role)
             await interaction.followup.send(embed=success_embed(f"Removed **{role.name}** from **{target.display_name}**."), ephemeral=True)
-            await _log_general(interaction.client, interaction.guild, f":minus: **{interaction.user}** removed **{role.name}** from **{target}**")
+            await _send_general(interaction.client, interaction.guild,
+                f":minus: **{interaction.user}** removed **{role.name}** from **{target}**")
         else:
             await target.add_roles(role)
             await interaction.followup.send(embed=success_embed(f"Added **{role.name}** to **{target.display_name}**."), ephemeral=True)
-            await _log_general(interaction.client, interaction.guild, f":plus: **{interaction.user}** added **{role.name}** to **{target}**")
+            await _send_general(interaction.client, interaction.guild,
+                f":plus: **{interaction.user}** added **{role.name}** to **{target}**")
 
     # -----------------------------------------------------------------------
     # Block / Unblock
@@ -392,13 +517,16 @@ class Moderation(commands.Cog):
         overwrite.add_reactions = False
         await channel.set_permissions(target, overwrite=overwrite, reason=reason)
         await db.add_channel_block(interaction.guild_id, channel.id, target.id, interaction.user.id)
-        embed = discord.Embed(
+        await interaction.followup.send(embed=discord.Embed(
             description=f":no_entry: **{target.display_name}** has been blocked from chatting in this channel.\nReason: {reason}",
             color=0xED4245,
-        )
-        embed.set_footer(text=f"Actioned by {interaction.user}")
-        await interaction.followup.send(embed=embed)
-        await _log_general(interaction.client, interaction.guild, f":no_entry: **{interaction.user}** blocked **{target}** in {channel.mention} — {reason}")
+        ).set_footer(text=f"Actioned by {interaction.user}"))
+
+        embed = _mod_embed("🚫 Member Blocked", 0xED4245, interaction.user, target)
+        embed.add_field(name="Channel", value=channel.mention, inline=True)
+        embed.add_field(name="Reason", value=reason, inline=False)
+        embed.add_field(name="Server", value=f"{interaction.guild.name} (`{interaction.guild_id}`)", inline=False)
+        await _send_modlog(interaction.client, interaction.guild, embed)
 
     @app_commands.command(name="unblock", description="Restore a blocked member's chat access in this channel")
     @app_commands.describe(member="Username, display name, or mention")
@@ -418,8 +546,11 @@ class Moderation(commands.Cog):
             await channel.set_permissions(target, overwrite=overwrite)
         await db.remove_channel_block(interaction.guild_id, channel.id, target.id)
         await interaction.followup.send(embed=success_embed(f"**{target.display_name}** can now chat in this channel again."))
-        await _log_general(interaction.client, interaction.guild, f":white_check_mark: **{interaction.user}** unblocked **{target}** in {channel.mention}")
 
+        embed = _mod_embed("✅ Member Unblocked", 0x57F287, interaction.user, target)
+        embed.add_field(name="Channel", value=channel.mention, inline=True)
+        embed.add_field(name="Server", value=f"{interaction.guild.name} (`{interaction.guild_id}`)", inline=False)
+        await _send_modlog(interaction.client, interaction.guild, embed)
 
     @app_commands.command(name="threshold", description="Set the warning count that triggers an auto-ban (0 to disable)")
     @app_commands.describe(count="Number of warnings before auto-ban (0 = disabled)")
@@ -430,8 +561,16 @@ class Moderation(commands.Cog):
         if count == 0:
             await interaction.response.send_message(embed=success_embed("Auto-ban on warnings disabled."), ephemeral=True)
         else:
-            await interaction.response.send_message(embed=success_embed(f"Members will be auto-banned after **{count}** warnings."), ephemeral=True)
-        await _log_modaction(interaction.guild, f":gear: **{interaction.user}** set auto-ban threshold to **{count}**")
+            await interaction.response.send_message(
+                embed=success_embed(f"Members will be auto-banned after **{count}** warnings."), ephemeral=True
+            )
+
+        embed = discord.Embed(title="⚙️ Auto-ban Threshold Updated", color=0x5865F2, timestamp=discord.utils.utcnow())
+        embed.set_author(name=str(interaction.user), icon_url=interaction.user.display_avatar.url)
+        embed.add_field(name="Threshold", value=str(count) if count else "Disabled", inline=True)
+        embed.add_field(name="Set By", value=interaction.user.mention, inline=True)
+        embed.add_field(name="Server", value=f"{interaction.guild.name} (`{interaction.guild_id}`)", inline=False)
+        await _send_modlog(interaction.client, interaction.guild, embed)
 
 
 async def setup(bot: commands.Bot):

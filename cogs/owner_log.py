@@ -28,6 +28,14 @@ C_SERVER   = 0x57F287   # guild join / leave
 C_MOD      = 0xED4245   # moderation action
 C_ERROR    = 0xFF0000   # command error
 
+# These commands dispatch their own rich embeds via bot.dispatch("owner_log", embed)
+# so the generic on_interaction handler skips them to avoid duplicates.
+_MOD_COMMANDS = frozenset({
+    "ban", "unban", "kick", "mute", "unmute", "purge",
+    "nick", "block", "unblock", "lock", "unlock", "threshold",
+    "warn add", "warn remove",
+})
+
 
 def _guild_str(guild: discord.Guild | None) -> str:
     if not guild:
@@ -102,6 +110,10 @@ class OwnerLog(commands.Cog):
         # ---- Slash command ----
         if itype == discord.InteractionType.application_command:
             cmd_name = interaction.command.qualified_name if interaction.command else "unknown"
+
+            # Mod commands dispatch their own rich embeds — skip to avoid duplicates
+            if cmd_name in _MOD_COMMANDS:
+                return
 
             # Build a readable options string
             opts = ""
