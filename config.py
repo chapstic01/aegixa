@@ -57,6 +57,7 @@ FILTER_NAMES = [
     "invite",
     "caps",
     "rate_limit",
+    "mentions",
     "phishing",   # Premium — detected by utils/phishing.py
 ]
 

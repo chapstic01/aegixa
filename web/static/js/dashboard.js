@@ -389,7 +389,13 @@ async function loadAlerts() {
 }
 
 async function saveAlerts() {
-  toast('Alert settings saved.');
+  const form = document.getElementById('alerts-form');
+  const payload = {
+    alert_channel_id: form.querySelector('[name="alert_channel"]')?.value || null,
+    announcement_channel_id: form.querySelector('[name="announcement_channel"]')?.value || null,
+  };
+  const res = await apiFetch(`${API}/alerts`, { method: 'POST', body: JSON.stringify(payload) });
+  res.ok ? toast('Alert settings saved.') : toast('Failed to save.', 'error');
 }
 
 // ---------------------------------------------------------------------------
@@ -410,6 +416,9 @@ async function doModAction() {
   const result   = document.getElementById('mod-result');
 
   if (!member) return toast('Enter a member username or ID.', 'error');
+  if (['ban', 'tempban', 'kick'].includes(action)) {
+    if (!confirm(`Are you sure you want to ${action} this user? This cannot be undone.`)) return;
+  }
 
   result.innerHTML = '<div class="spinner" style="margin:.5rem 0;width:24px;height:24px;border-width:2px"></div>';
   const res = await apiFetch(`${API}/modaction`, {
@@ -491,6 +500,7 @@ async function loadReactionRoles() {
 }
 
 async function deleteRR(messageId, emoji) {
+  if (!confirm('Delete this reaction role?')) return;
   const res = await apiFetch(`${API}/reactionroles/${messageId}/${encodeURIComponent(emoji)}`, { method: 'DELETE' });
   res.ok ? (toast('Reaction role removed.'), loadReactionRoles()) : toast('Failed.', 'error');
 }
@@ -677,6 +687,7 @@ async function loadCustomCmds() {
 }
 
 async function deleteCustomCmd(name) {
+  if (!confirm(`Delete command !${name}?`)) return;
   const res = await apiFetch(`${API}/customcmds/${encodeURIComponent(name)}`, { method: 'DELETE' });
   res.ok ? (toast(`!${name} removed.`), loadCustomCmds()) : toast('Failed.', 'error');
 }

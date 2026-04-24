@@ -64,6 +64,17 @@ def _mod_embed(
 # Warn group
 # ---------------------------------------------------------------------------
 
+async def _warn_id_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[int]]:
+    warnings = await db.get_all_warnings(interaction.guild.id)
+    choices = []
+    for w in warnings:
+        reason_preview = (w["reason"] or "No reason")[:40]
+        label = f"#{w['id']} — {reason_preview}"
+        if not current or current in str(w["id"]):
+            choices.append(app_commands.Choice(name=label, value=w["id"]))
+    return choices[:25]
+
+
 class WarnGroup(app_commands.Group):
     def __init__(self):
         super().__init__(name="warn", description="Warning management")
@@ -151,6 +162,7 @@ class WarnGroup(app_commands.Group):
 
     @app_commands.command(name="remove", description="Remove a warning by ID")
     @app_commands.describe(warning_id="The warning ID to remove")
+    @app_commands.autocomplete(warning_id=_warn_id_autocomplete)
     @is_staff()
     async def warn_remove(self, interaction: discord.Interaction, warning_id: int):
         removed = await db.remove_warning(interaction.guild_id, warning_id)

@@ -66,7 +66,7 @@ class LevelRolesGroup(app_commands.Group):
             return await interaction.response.send_message(
                 embed=error_embed("Level must be 1 or higher."), ephemeral=True
             )
-        if role >= interaction.guild.me.top_role:
+        if role.position >= interaction.guild.me.top_role.position:
             return await interaction.response.send_message(
                 embed=error_embed("That role is above my highest role."), ephemeral=True
             )

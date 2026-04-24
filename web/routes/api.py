@@ -318,6 +318,19 @@ def get_config(guild_id):
     })
 
 
+@api.post("/guild/<int:guild_id>/alerts")
+@login_required
+def save_alerts(guild_id):
+    if not _check_guild_access(guild_id):
+        return jsonify({"error": "Forbidden"}), 403
+    data = request.json or {}
+    alert_ch = data.get("alert_channel_id") or None
+    announce_ch = data.get("announcement_channel_id") or None
+    run_async(db.set_guild_field(guild_id, "alert_channel_id", int(alert_ch) if alert_ch else None))
+    run_async(db.set_guild_field(guild_id, "announcement_channel_id", int(announce_ch) if announce_ch else None))
+    return jsonify({"ok": True})
+
+
 @api.get("/guild/<int:guild_id>/channels")
 @login_required
 def get_channels(guild_id):

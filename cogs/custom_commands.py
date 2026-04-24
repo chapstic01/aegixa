@@ -39,6 +39,14 @@ class CCResponseModal(discord.ui.Modal, title="Custom Command Response"):
         )
 
 
+async def _cc_name_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    cmds = await db.get_custom_commands(interaction.guild.id)
+    return [
+        app_commands.Choice(name=c["name"], value=c["name"])
+        for c in cmds if not current or current.lower() in c["name"].lower()
+    ][:25]
+
+
 class CCGroup(app_commands.Group):
     def __init__(self):
         super().__init__(name="cc", description="Manage custom bot commands")
@@ -65,6 +73,7 @@ class CCGroup(app_commands.Group):
 
     @app_commands.command(name="remove", description="Remove a custom command")
     @app_commands.describe(name="Command name to remove (without !)")
+    @app_commands.autocomplete(name=_cc_name_autocomplete)
     @is_admin()
     async def cc_remove(self, interaction: discord.Interaction, name: str):
         removed = await db.delete_custom_command(interaction.guild_id, name.lower().strip())
