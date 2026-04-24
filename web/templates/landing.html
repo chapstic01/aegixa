@@ -64,7 +64,7 @@ img{display:block;max-width:100%}
   border:none;transition:all .2s ease;white-space:nowrap;
 }
 .btn-primary{
-  background:linear-gradient(135deg,var(--gold),var(--gold2));color:#fff;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
   color:#ffffff;
   box-shadow:0 4px 20px rgba(220,38,38,.25);
 }
@@ -175,7 +175,12 @@ nav.links a:hover{color:var(--gold);background:rgba(220,38,38,.07)}
   font-size:.82rem;font-weight:600;letter-spacing:.02em;
   margin-bottom:1.75rem;
 }
-.hero-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--gold);animation:blink 1.8s infinite}
+.hero-badge-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--gold);
+  animation:blink 1.8s infinite;
+  flex-shrink:0;
+}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 .hero h1{
   font-size:clamp(2.4rem,6vw,4rem);font-weight:900;letter-spacing:-.04em;
@@ -222,10 +227,13 @@ nav.links a:hover{color:var(--gold);background:rgba(220,38,38,.07)}
 .mockup-body{padding:1.5rem;display:grid;grid-template-columns:180px 1fr;gap:1rem;min-height:280px}
 .mockup-sidebar{display:flex;flex-direction:column;gap:.5rem}
 .mockup-sidebar-item{
+  display:flex;align-items:center;gap:.45rem;
   padding:.5rem .75rem;border-radius:var(--radius-sm);
   font-size:.78rem;color:var(--text3);
 }
+.mockup-sidebar-item svg{flex-shrink:0;opacity:.7}
 .mockup-sidebar-item.active{background:rgba(220,38,38,.1);color:var(--gold);font-weight:600}
+.mockup-sidebar-item.active svg{opacity:1;color:var(--gold)}
 .mockup-sidebar-item:not(.active):hover{background:var(--bg4);color:var(--text2)}
 .mockup-content{display:flex;flex-direction:column;gap:.75rem}
 .mockup-card{
@@ -289,6 +297,41 @@ nav.links a:hover{color:var(--gold);background:rgba(220,38,38,.07)}
 .section-header{text-align:center;margin-bottom:3.5rem}
 .section-header .section-sub{margin:0 auto}
 
+/* ─── Pricing ───────────────────────────────────────────────────────────────── */
+.pricing-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;max-width:760px;margin:0 auto}
+.price-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:2rem;
+  position:relative;overflow:hidden;
+}
+.price-card.featured{border-color:rgba(220,38,38,.35);background:var(--bg3)}
+.price-card.featured::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--gold),var(--orange));
+}
+.price-badge{
+  display:inline-flex;align-items:center;gap:.35rem;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));color:#fff;
+  font-size:.72rem;font-weight:700;padding:.2rem .65rem;
+  border-radius:var(--radius-xl);margin-bottom:1rem;
+}
+.price-name{font-size:1.15rem;font-weight:700;margin-bottom:.25rem}
+.price-amount{
+  font-size:2.4rem;font-weight:900;letter-spacing:-.04em;
+  line-height:1;margin:.75rem 0 .25rem;
+}
+.price-amount span{font-size:1rem;font-weight:500;color:var(--text3)}
+.price-desc{font-size:.85rem;color:var(--text3);margin-bottom:1.5rem}
+.price-list{list-style:none;display:flex;flex-direction:column;gap:.6rem;margin-bottom:2rem}
+.price-list li{
+  display:flex;align-items:flex-start;gap:.65rem;
+  font-size:.88rem;color:var(--text2);
+}
+.price-list li .check-icon{flex-shrink:0;margin-top:.1rem}
+.price-card:not(.featured) .price-list li .check-icon{color:var(--text3)}
+.price-card.featured .price-list li .check-icon{color:var(--gold)}
+.price-cta{width:100%;justify-content:center}
+
 /* ─── Feature cards ─────────────────────────────────────────────────────────── */
 .features-grid{
   display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;
@@ -320,7 +363,7 @@ nav.links a:hover{color:var(--gold);background:rgba(220,38,38,.07)}
   width:46px;height:46px;border-radius:var(--radius);
   background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.15);
   display:flex;align-items:center;justify-content:center;
-  margin-bottom:1rem;font-size:1.4rem;
+  margin-bottom:1rem;color:var(--gold);
 }
 .feat-title{font-size:1.05rem;font-weight:700;margin-bottom:.4rem}
 .feat-desc{font-size:.87rem;color:var(--text2);line-height:1.6}
@@ -335,54 +378,7 @@ nav.links a:hover{color:var(--gold);background:rgba(220,38,38,.07)}
   display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem 1.5rem;
 }
 .check-item{display:flex;align-items:center;gap:.6rem;font-size:.87rem;color:var(--text2)}
-.check-item::before{
-  content:'✓';flex-shrink:0;
-  width:18px;height:18px;border-radius:50%;
-  background:rgba(220,38,38,.12);color:var(--gold);
-  display:flex;align-items:center;justify-content:center;
-  font-size:.65rem;font-weight:700;
-}
-
-/* ─── Pricing ───────────────────────────────────────────────────────────────── */
-.pricing-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;max-width:760px;margin:0 auto}
-.price-card{
-  background:var(--bg2);border:1px solid var(--border);
-  border-radius:var(--radius-lg);padding:2rem;
-  position:relative;overflow:hidden;
-}
-.price-card.featured{border-color:rgba(220,38,38,.35);background:var(--bg3)}
-.price-card.featured::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,var(--gold),var(--orange));
-}
-.price-badge{
-  display:inline-block;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#fff;
-  color:#ffffff;font-size:.72rem;font-weight:700;padding:.2rem .65rem;
-  border-radius:var(--radius-xl);margin-bottom:1rem;
-}
-.price-name{font-size:1.15rem;font-weight:700;margin-bottom:.25rem}
-.price-amount{
-  font-size:2.4rem;font-weight:900;letter-spacing:-.04em;
-  line-height:1;margin:.75rem 0 .25rem;
-}
-.price-amount span{font-size:1rem;font-weight:500;color:var(--text3)}
-.price-desc{font-size:.85rem;color:var(--text3);margin-bottom:1.5rem}
-.price-list{list-style:none;display:flex;flex-direction:column;gap:.6rem;margin-bottom:2rem}
-.price-list li{
-  display:flex;align-items:flex-start;gap:.65rem;
-  font-size:.88rem;color:var(--text2);
-}
-.price-list li::before{
-  content:'✓';flex-shrink:0;margin-top:.05rem;
-  width:17px;height:17px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:.62rem;font-weight:700;
-}
-.price-card:not(.featured) .price-list li::before{
-  background:rgba(255,255,255,.08);color:var(--text2);
-}
-.price-card.featured .price-list li::before{background:rgba(220,38,38,.15);color:var(--gold)}
-.price-cta{width:100%;justify-content:center}
+.check-item svg{flex-shrink:0;color:var(--gold)}
 
 /* ─── Bottom CTA ────────────────────────────────────────────────────────────── */
 .cta-section{
@@ -410,6 +406,8 @@ footer{
   display:flex;align-items:center;justify-content:space-between;
   font-size:.82rem;color:var(--text3);flex-wrap:wrap;gap:.5rem;
 }
+.footer-heart{display:inline-flex;align-items:center;gap:.3rem}
+.footer-heart svg{color:var(--gold)}
 
 /* ─── Entrance animations ───────────────────────────────────────────────────── */
 .animate{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
@@ -459,8 +457,8 @@ footer{
     </a>
 
     <nav class="links">
-      <a href="#features">Features</a>
       <a href="#pricing">Pricing</a>
+      <a href="#features">Features</a>
       <a href="{{ support_server }}" target="_blank" rel="noopener">Support</a>
       <a href="/auth/login">Dashboard</a>
     </nav>
@@ -488,8 +486,8 @@ footer{
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
     </button>
   </div>
-  <a href="#features">Features</a>
   <a href="#pricing">Pricing</a>
+  <a href="#features">Features</a>
   <a href="{{ support_server }}" target="_blank" rel="noopener">Support</a>
   <a href="/auth/login">Dashboard</a>
   <a class="btn btn-primary btn-lg" href="{{ invite_url }}" target="_blank" rel="noopener">Add to Discord</a>
@@ -500,7 +498,10 @@ footer{
   <div class="hero-glow"></div>
   <div class="hero-glow2"></div>
   <div class="container">
-    <div class="hero-badge animate">🛡️ Free to use &nbsp;·&nbsp; Premium available</div>
+    <div class="hero-badge animate">
+      <span class="hero-badge-dot"></span>
+      Free to use &nbsp;·&nbsp; Premium available
+    </div>
     <h1 class="animate delay-1">
       The Ultimate<br/>
       <span class="gradient-text">Discord Protection</span><br/>
@@ -531,12 +532,30 @@ footer{
         </div>
         <div class="mockup-body">
           <div class="mockup-sidebar">
-            <div class="mockup-sidebar-item active">⚡ Features</div>
-            <div class="mockup-sidebar-item">🛡️ Automod</div>
-            <div class="mockup-sidebar-item">📋 Logs</div>
-            <div class="mockup-sidebar-item">🎫 Tickets</div>
-            <div class="mockup-sidebar-item">🏆 Levels</div>
-            <div class="mockup-sidebar-item">⭐ Starboard</div>
+            <div class="mockup-sidebar-item active">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Features
+            </div>
+            <div class="mockup-sidebar-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Automod
+            </div>
+            <div class="mockup-sidebar-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              Logs
+            </div>
+            <div class="mockup-sidebar-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Tickets
+            </div>
+            <div class="mockup-sidebar-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+              Levels
+            </div>
+            <div class="mockup-sidebar-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              Starboard
+            </div>
           </div>
           <div class="mockup-content">
             <div class="mockup-card">
@@ -584,77 +603,6 @@ footer{
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════ FEATURES -->
-<section class="section" id="features">
-  <div class="container">
-    <div class="section-header animate">
-      <div class="section-tag">Features</div>
-      <h2 class="section-title">Everything your server needs,<br/><span class="gradient-text">in one bot</span></h2>
-      <p class="section-sub">No more juggling five different bots. Aegixa handles it all — moderation, community tools, automation, and more.</p>
-    </div>
-
-    <div class="features-grid">
-      <div class="feat-card animate delay-1">
-        <div class="feat-card-glow glow-gold"></div>
-        <div class="feat-icon">🛡️</div>
-        <div class="feat-title">Automod &amp; Anti-Raid</div>
-        <div class="feat-desc">11 configurable filters — spam, links, caps, invites, mentions, phishing detection (Premium) and more. Smart anti-raid with auto-kick/ban thresholds.</div>
-      </div>
-      <div class="feat-card animate delay-2">
-        <div class="feat-card-glow glow-blue"></div>
-        <div class="feat-icon">📋</div>
-        <div class="feat-title">Advanced Logging</div>
-        <div class="feat-desc">9 log categories: edits, deletes, member joins/leaves, voice events, role changes, channel updates, mod actions, and more — all routed to separate channels.</div>
-      </div>
-      <div class="feat-card animate delay-3">
-        <div class="feat-card-glow glow-green"></div>
-        <div class="feat-icon">🎫</div>
-        <div class="feat-title">Ticket System</div>
-        <div class="feat-desc">Button-based tickets with up to 3 configurable types, add/remove users, rename, staff notes, HTML transcripts, and auto-close idle tickets.</div>
-      </div>
-      <div class="feat-card animate delay-2">
-        <div class="feat-card-glow glow-orange"></div>
-        <div class="feat-icon">⚙️</div>
-        <div class="feat-title">Moderation Suite</div>
-        <div class="feat-desc">Kick, ban, mute, warn, temp-ban, message purge, channel lock, slowmode. Full warning history per member with reason tracking.</div>
-      </div>
-      <div class="feat-card animate delay-3">
-        <div class="feat-card-glow glow-pink"></div>
-        <div class="feat-icon">👋</div>
-        <div class="feat-title">Join / Leave &amp; Autoroles</div>
-        <div class="feat-desc">Custom welcome and leave messages with rich variable support. Welcome DMs. Auto-assign roles on join with configurable delay.</div>
-      </div>
-      <div class="feat-card animate delay-4">
-        <div class="feat-card-glow glow-cyan"></div>
-        <div class="feat-icon">🎉</div>
-        <div class="feat-title">Giveaways</div>
-        <div class="feat-desc">Create and manage giveaways with automatic winner selection, reroll, and end announcements. Fully button-driven.</div>
-      </div>
-    </div>
-
-    <!-- Secondary features -->
-    <div class="checklist-box animate" style="margin-top:1.5rem">
-      <div class="checklist-title">And much more…</div>
-      <div class="checklist-grid">
-        <div class="check-item">Reaction Roles</div>
-        <div class="check-item">Invite Tracking</div>
-        <div class="check-item">Sticky Messages</div>
-        <div class="check-item">Custom Commands</div>
-        <div class="check-item">Server Stats Channels</div>
-        <div class="check-item">Polls</div>
-        <div class="check-item">Scheduled Messages</div>
-        <div class="check-item">Starboard</div>
-        <div class="check-item">Role Automation</div>
-        <div class="check-item">Temp Bans</div>
-        <div class="check-item">Message Management</div>
-        <div class="check-item">Web Dashboard</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<div class="divider"></div>
-
 <!-- ══════════════════════════════════════════════ PRICING -->
 <section class="section" id="pricing">
   <div class="container">
@@ -671,38 +619,260 @@ footer{
         <div class="price-amount">$0<span>/forever</span></div>
         <div class="price-desc">Everything you need to run a great server.</div>
         <ul class="price-list">
-          <li>Full automod &amp; anti-raid</li>
-          <li>Moderation commands (kick, ban, warn…)</li>
-          <li>Advanced logging (9 categories)</li>
-          <li>Ticket system with types &amp; transcripts</li>
-          <li>Join/Leave messages &amp; autoroles</li>
-          <li>Reaction roles &amp; role automation</li>
-          <li>Giveaways &amp; invite tracking</li>
-          <li>Polls, starboard &amp; custom commands</li>
-          <li>Scheduled messages</li>
-          <li>Server stats channels</li>
-          <li>Web dashboard</li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Full automod &amp; anti-raid
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Moderation commands (kick, ban, warn…)
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Advanced logging (9 categories)
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Ticket system with types &amp; transcripts
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Join/Leave messages &amp; autoroles
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Reaction roles &amp; role automation
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Giveaways &amp; invite tracking
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Polls, starboard &amp; custom commands
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Scheduled messages
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Server stats channels
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Web dashboard
+          </li>
         </ul>
         <a class="btn btn-ghost price-cta" href="{{ invite_url }}" target="_blank" rel="noopener">Add Aegixa Free</a>
       </div>
       <!-- Premium -->
       <div class="price-card featured animate delay-2">
-        <div class="price-badge">PREMIUM</div>
+        <div class="price-badge">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          PREMIUM
+        </div>
         <div class="price-name">Premium</div>
         <div class="price-amount"><span>$</span>{{ premium_price }}<span>/month</span></div>
         <div class="price-desc">Unlock the full power of Aegixa for your server.</div>
         <ul class="price-list">
-          <li>Everything in Free</li>
-          <li>XP / Levels system</li>
-          <li>Voice XP — earn XP in voice channels</li>
-          <li>Level roles &amp; custom level-up messages</li>
-          <li>XP leaderboard</li>
-          <li>Phishing link detection</li>
-          <li>Member verification gate</li>
-          <li>Priority support</li>
-          <li>All future premium features</li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Everything in Free
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            XP / Levels system
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Voice XP — earn XP in voice channels
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Level roles &amp; custom level-up messages
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            XP leaderboard
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Phishing link detection
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Member verification gate
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Priority support
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            All future premium features
+          </li>
         </ul>
         <a class="btn btn-primary price-cta" href="{{ premium_url }}" target="_blank" rel="noopener">Get Premium</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════════ FEATURES -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-header animate">
+      <div class="section-tag">Features</div>
+      <h2 class="section-title">Everything your server needs,<br/><span class="gradient-text">in one bot</span></h2>
+      <p class="section-sub">No more juggling five different bots. Aegixa handles it all — moderation, community tools, automation, and more.</p>
+    </div>
+
+    <div class="features-grid">
+      <!-- Automod -->
+      <div class="feat-card animate delay-1">
+        <div class="feat-card-glow glow-gold"></div>
+        <div class="feat-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <polyline points="9 12 11 14 15 10"/>
+          </svg>
+        </div>
+        <div class="feat-title">Automod &amp; Anti-Raid</div>
+        <div class="feat-desc">11 configurable filters — spam, links, caps, invites, mentions, phishing detection (Premium) and more. Smart anti-raid with auto-kick/ban thresholds.</div>
+      </div>
+      <!-- Logging -->
+      <div class="feat-card animate delay-2">
+        <div class="feat-card-glow glow-blue"></div>
+        <div class="feat-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <line x1="10" y1="9" x2="8" y2="9"/>
+          </svg>
+        </div>
+        <div class="feat-title">Advanced Logging</div>
+        <div class="feat-desc">9 log categories: edits, deletes, member joins/leaves, voice events, role changes, channel updates, mod actions, and more — all routed to separate channels.</div>
+      </div>
+      <!-- Tickets -->
+      <div class="feat-card animate delay-3">
+        <div class="feat-card-glow glow-green"></div>
+        <div class="feat-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            <line x1="9" y1="10" x2="15" y2="10"/>
+            <line x1="9" y1="14" x2="13" y2="14"/>
+          </svg>
+        </div>
+        <div class="feat-title">Ticket System</div>
+        <div class="feat-desc">Button-based tickets with up to 3 configurable types, add/remove users, rename, staff notes, HTML transcripts, and auto-close idle tickets.</div>
+      </div>
+      <!-- Moderation -->
+      <div class="feat-card animate delay-2">
+        <div class="feat-card-glow glow-orange"></div>
+        <div class="feat-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="21" x2="4" y2="14"/>
+            <line x1="4" y1="10" x2="4" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12" y2="3"/>
+            <line x1="20" y1="21" x2="20" y2="16"/>
+            <line x1="20" y1="12" x2="20" y2="3"/>
+            <line x1="1" y1="14" x2="7" y2="14"/>
+            <line x1="9" y1="8" x2="15" y2="8"/>
+            <line x1="17" y1="16" x2="23" y2="16"/>
+          </svg>
+        </div>
+        <div class="feat-title">Moderation Suite</div>
+        <div class="feat-desc">Kick, ban, mute, warn, temp-ban, message purge, channel lock, slowmode. Full warning history per member with reason tracking.</div>
+      </div>
+      <!-- Join/Leave -->
+      <div class="feat-card animate delay-3">
+        <div class="feat-card-glow glow-pink"></div>
+        <div class="feat-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <line x1="19" y1="8" x2="19" y2="14"/>
+            <line x1="22" y1="11" x2="16" y2="11"/>
+          </svg>
+        </div>
+        <div class="feat-title">Join / Leave &amp; Autoroles</div>
+        <div class="feat-desc">Custom welcome and leave messages with rich variable support. Welcome DMs. Auto-assign roles on join with configurable delay.</div>
+      </div>
+      <!-- Giveaways -->
+      <div class="feat-card animate delay-4">
+        <div class="feat-card-glow glow-cyan"></div>
+        <div class="feat-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 12 20 22 4 22 4 12"/>
+            <rect x="2" y="7" width="20" height="5"/>
+            <line x1="12" y1="22" x2="12" y2="7"/>
+            <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
+            <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+          </svg>
+        </div>
+        <div class="feat-title">Giveaways</div>
+        <div class="feat-desc">Create and manage giveaways with automatic winner selection, reroll, and end announcements. Fully button-driven.</div>
+      </div>
+    </div>
+
+    <!-- Secondary features -->
+    <div class="checklist-box animate" style="margin-top:1.5rem">
+      <div class="checklist-title">And much more…</div>
+      <div class="checklist-grid">
+        <div class="check-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Reaction Roles
+        </div>
+        <div class="check-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Invite Tracking
+        </div>
+        <div class="check-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Sticky Messages
+        </div>
+        <div class="check-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Custom Commands
+        </div>
+        <div class="check-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Server Stats Channels
+        </div>
+        <div class="check-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Polls
+        </div>
+        <div class="check-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Scheduled Messages
+        </div>
+        <div class="check-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Starboard
+        </div>
+        <div class="check-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Role Automation
+        </div>
+        <div class="check-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Temp Bans
+        </div>
+        <div class="check-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Message Management
+        </div>
+        <div class="check-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Web Dashboard
+        </div>
       </div>
     </div>
   </div>
@@ -735,8 +905,8 @@ footer{
       </div>
       <div class="footer-col">
         <h4>Product</h4>
-        <a href="#features">Features</a>
         <a href="#pricing">Pricing</a>
+        <a href="#features">Features</a>
         <a href="{{ premium_url }}" target="_blank" rel="noopener">Get Premium</a>
       </div>
       <div class="footer-col">
@@ -753,7 +923,13 @@ footer{
     </div>
     <div class="footer-bottom">
       <span>© 2025 Aegixa. All rights reserved.</span>
-      <span>Built with ❤️ for Discord communities</span>
+      <span class="footer-heart">
+        Built with
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+        for Discord communities
+      </span>
     </div>
   </div>
 </footer>
