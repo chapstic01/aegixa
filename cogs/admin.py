@@ -534,6 +534,32 @@ class Admin(commands.Cog):
         embed = _make_home_embed(len(self.bot.guilds))
         await interaction.response.send_message(embed=embed, view=HelpView(), ephemeral=True)
 
+    @app_commands.command(name="premiumcode", description="Generate a verification code to activate Aegixa Premium at checkout")
+    async def premiumcode(self, interaction: discord.Interaction):
+        if not interaction.user.guild_permissions.manage_guild:
+            return await interaction.response.send_message(
+                embed=error_embed("You need **Manage Server** permission to generate a premium code."),
+                ephemeral=True,
+            )
+        code = await db.create_premium_code(interaction.guild_id)
+        embed = discord.Embed(
+            title="⭐ Premium Activation Code",
+            description=(
+                f"Use this code at Gumroad checkout to instantly activate Premium for **{interaction.guild.name}**.\n\n"
+                f"## `{code}`\n\n"
+                f"**Steps:**\n"
+                f"1. Go to the [Aegixa Premium page]({PREMIUM_URL})\n"
+                f"2. At checkout, enter:\n"
+                f"   • **Discord Server ID:** `{interaction.guild_id}`\n"
+                f"   • **Verification Code:** `{code}`\n"
+                f"3. Complete payment — Premium activates instantly!"
+            ),
+            color=COLOR_PREMIUM,
+            timestamp=discord.utils.utcnow(),
+        )
+        embed.set_footer(text="This code expires in 60 minutes. Run /premiumcode again if it expires.")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
     @app_commands.command(name="premium", description="Check this server's premium status")
     async def premium(self, interaction: discord.Interaction):
         is_prem = await db.is_premium(interaction.guild_id)

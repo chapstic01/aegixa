@@ -360,6 +360,20 @@ CREATE TABLE IF NOT EXISTS anti_nuke_config (
     whitelist   TEXT DEFAULT '[]',
     thresholds  TEXT DEFAULT '{}'
 );
+
+CREATE TABLE IF NOT EXISTS premium_codes (
+    guild_id    INTEGER PRIMARY KEY,
+    code        TEXT NOT NULL,
+    expires_at  TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS gumroad_subscriptions (
+    subscription_id TEXT PRIMARY KEY,
+    guild_id        INTEGER NOT NULL,
+    tier            TEXT NOT NULL DEFAULT 'premium',
+    days            INTEGER NOT NULL DEFAULT 30,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 
@@ -991,11 +1005,18 @@ async def generate_license_key(tier: str, duration_days: int, created_by: int, m
 
 
 async def grant_premium(guild_id: int, days: int, tier: str = "premium"):
-    """Grant premium to a guild without a license key (owner gifting)."""
+    """Grant or extend premium. If already active, adds days from current expiry."""
     await _execute(
-        """INSERT OR REPLACE INTO premium_guilds (guild_id, expires_at, license_key, tier)
-           VALUES (?, datetime('now', '+' || ? || ' days'), 'GIFTED', ?)""",
-        (guild_id, days, tier),
+        """INSERT INTO premium_guilds (guild_id, expires_at, license_key, tier)
+           VALUES (?, datetime('now', '+' || ? || ' days'), 'GUMROAD', ?)
+           ON CONFLICT(guild_id) DO UPDATE SET
+               expires_at = CASE
+                   WHEN expires_at > datetime('now')
+                   THEN datetime(expires_at, '+' || ? || ' days')
+                   ELSE datetime('now', '+' || ? || ' days')
+               END,
+               tier = excluded.tier""",
+        (guild_id, days, tier, days, days),
     )
 
 
@@ -1420,3 +1441,44 @@ async def set_poll_message(poll_id: int, message_id: int):
 
 async def end_poll(poll_id: int):
     await _execute("UPDATE polls SET ended=1 WHERE id=?", (poll_id,))
+
+
+# ---------------------------------------------------------------------------
+# Premium codes & Gumroad subscriptions
+# ---------------------------------------------------------------------------
+
+async def create_premium_code(guild_id: int) -> str:
+    """Generate a 6-char verification code valid for 60 minutes."""
+    code = secrets.token_hex(3).upper()
+    await _execute(
+        """INSERT OR REPLACE INTO premium_codes (guild_id, code, expires_at)
+           VALUES (?, ?, datetime('now', '+60 minutes'))""",
+        (guild_id, code),
+    )
+    return code
+
+
+async def verify_and_consume_premium_code(guild_id: int, code: str) -> bool:
+    """Return True and delete the code if it matches and hasn't expired."""
+    row = await _fetchone(
+        "SELECT 1 FROM premium_codes WHERE guild_id=? AND code=? AND expires_at > datetime('now')",
+        (guild_id, code.strip().upper()),
+    )
+    if row:
+        await _execute("DELETE FROM premium_codes WHERE guild_id=?", (guild_id,))
+        return True
+    return False
+
+
+async def store_gumroad_subscription(subscription_id: str, guild_id: int, tier: str, days: int):
+    await _execute(
+        "INSERT OR REPLACE INTO gumroad_subscriptions (subscription_id, guild_id, tier, days) VALUES (?,?,?,?)",
+        (subscription_id, guild_id, tier, days),
+    )
+
+
+async def get_gumroad_subscription(subscription_id: str) -> Optional[dict]:
+    return await _fetchone(
+        "SELECT * FROM gumroad_subscriptions WHERE subscription_id=?",
+        (subscription_id,),
+    )
