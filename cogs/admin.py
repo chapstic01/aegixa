@@ -412,31 +412,37 @@ class _UpdateModal(discord.ui.Modal, title="Broadcast Update"):
         hex_color = COLOR_MAP.get(self.color.value.strip().lower(), 0x5865F2)
         footer_text = self.footer.value.strip() or "Aegixa Bot Update"
 
-        embed = discord.Embed(
+        broadcast_embed = discord.Embed(
             title=self.embed_title.value,
             description=self.message.value,
             color=hex_color,
             timestamp=discord.utils.utcnow(),
         )
-        embed.set_footer(text=footer_text)
+        broadcast_embed.set_footer(text=footer_text)
 
-        sent = 0
-        failed = 0
-        channel_posts = 0
+        # Per-guild delivery tracking
+        delivered_channel: list[str] = []   # "Guild (via #channel)"
+        delivered_dm: list[str] = []        # "Guild (owner DMed)"
+        failed_dm: list[str] = []           # "Guild (DM closed)"
+        no_delivery: list[str] = []         # "Guild (no channel, fetch failed)"
 
         for guild in self.bot.guilds:
             row = await db.get_guild(guild.id)
             update_channel_id = row.get("update_channel_id") if row else None
+            posted_to_channel = False
 
             if update_channel_id:
                 channel = guild.get_channel(update_channel_id)
                 if channel:
                     try:
-                        await channel.send(embed=embed)
-                        channel_posts += 1
-                        continue
+                        await channel.send(embed=broadcast_embed)
+                        delivered_channel.append(f"{guild.name} (#{channel.name})")
+                        posted_to_channel = True
                     except discord.HTTPException:
                         pass
+
+            if posted_to_channel:
+                continue
 
             try:
                 owner = await self.bot.fetch_user(guild.owner_id)
@@ -448,16 +454,71 @@ class _UpdateModal(discord.ui.Modal, title="Broadcast Update"):
                 )
                 owner_embed.set_footer(text=f"{footer_text} • Sent to you as owner of {guild.name}")
                 await owner.send(embed=owner_embed)
-                sent += 1
-            except (discord.HTTPException, discord.Forbidden):
-                failed += 1
+                delivered_dm.append(f"{guild.name}")
+            except discord.Forbidden:
+                failed_dm.append(f"{guild.name}")
+            except discord.HTTPException:
+                no_delivery.append(f"{guild.name}")
 
-        summary = f"**Update sent.**\n• Posted to update channels: **{channel_posts}**\n• DMed server owners: **{sent}**"
-        if failed:
-            summary += f"\n• Failed (DMs closed): **{failed}**"
+        total = len(delivered_channel) + len(delivered_dm)
+        total_guilds = len(self.bot.guilds)
 
-        await interaction.followup.send(embed=success_embed(summary), ephemeral=True)
-        log.info("Owner sent update to %d channels, %d owner DMs (%d failed)", channel_posts, sent, failed)
+        def _field_value(items: list[str], limit: int = 20) -> str:
+            if not items:
+                return "*(none)*"
+            shown = items[:limit]
+            text = "\n".join(f"• {s}" for s in shown)
+            if len(items) > limit:
+                text += f"\n*…and {len(items) - limit} more*"
+            return text
+
+        result_embed = discord.Embed(
+            title="📢 Update Broadcast Complete",
+            color=0x57F287,
+            timestamp=discord.utils.utcnow(),
+        )
+        result_embed.add_field(
+            name="Summary",
+            value=(
+                f"**{total}** / **{total_guilds}** servers received the message\n"
+                f"• Channel posts: **{len(delivered_channel)}**\n"
+                f"• Owner DMs sent: **{len(delivered_dm)}**\n"
+                f"• DMs failed (closed): **{len(failed_dm)}**\n"
+                f"• Unreachable (fetch error): **{len(no_delivery)}**"
+            ),
+            inline=False,
+        )
+        if delivered_channel:
+            result_embed.add_field(
+                name=f"✅ Posted to channel ({len(delivered_channel)})",
+                value=_field_value(delivered_channel)[:1024],
+                inline=False,
+            )
+        if delivered_dm:
+            result_embed.add_field(
+                name=f"✅ Owner DMed ({len(delivered_dm)})",
+                value=_field_value(delivered_dm)[:1024],
+                inline=False,
+            )
+        if failed_dm:
+            result_embed.add_field(
+                name=f"❌ DM failed — DMs closed ({len(failed_dm)})",
+                value=_field_value(failed_dm)[:1024],
+                inline=False,
+            )
+        if no_delivery:
+            result_embed.add_field(
+                name=f"⚠️ No delivery — fetch error ({len(no_delivery)})",
+                value=_field_value(no_delivery)[:1024],
+                inline=False,
+            )
+        result_embed.set_footer(text=f"Update title: {self.embed_title.value[:80]}")
+
+        await interaction.followup.send(embed=result_embed, ephemeral=True)
+        log.info(
+            "Owner broadcast: %d channel posts, %d owner DMs, %d failed DMs, %d unreachable",
+            len(delivered_channel), len(delivered_dm), len(failed_dm), len(no_delivery),
+        )
 
 
 # ---------------------------------------------------------------------------
