@@ -35,7 +35,7 @@ webhooks_bp = Blueprint("webhooks", __name__, url_prefix="/webhooks")
 
 # Map Gumroad product permalinks → (tier, days)
 PRODUCT_TIERS: dict[str, tuple[str, int]] = {
-    "aegixa":          ("premium", 30),
+    "ypngqs":          ("premium", 30),
     "aegixa-annual":   ("premium", 365),
     "aegixa-lifetime": ("premium", 36500),
 }
