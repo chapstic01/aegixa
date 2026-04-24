@@ -864,6 +864,10 @@ async def get_temp_bans(guild_id: int) -> list[dict]:
 # Sticky messages
 # ---------------------------------------------------------------------------
 
+async def get_all_stickies(guild_id: int) -> list[dict]:
+    return await _fetchall("SELECT * FROM sticky_messages WHERE guild_id=? ORDER BY channel_id", (guild_id,))
+
+
 async def get_sticky(guild_id: int, channel_id: int) -> Optional[dict]:
     return await _fetchone("SELECT * FROM sticky_messages WHERE guild_id=? AND channel_id=?", (guild_id, channel_id))
 
@@ -1481,4 +1485,41 @@ async def get_gumroad_subscription(subscription_id: str) -> Optional[dict]:
     return await _fetchone(
         "SELECT * FROM gumroad_subscriptions WHERE subscription_id=?",
         (subscription_id,),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Anti-nuke config
+# ---------------------------------------------------------------------------
+
+async def get_anti_nuke_config(guild_id: int) -> dict:
+    import json as _json
+    row = await _fetchone("SELECT * FROM anti_nuke_config WHERE guild_id=?", (guild_id,))
+    if not row:
+        return {"enabled": False, "punishment": "kick", "whitelist": [], "thresholds": {}}
+    return {
+        "enabled":    bool(row["enabled"]),
+        "punishment": row["punishment"] or "kick",
+        "whitelist":  _json.loads(row["whitelist"] or "[]"),
+        "thresholds": _json.loads(row["thresholds"] or "{}"),
+    }
+
+
+async def set_anti_nuke_config(guild_id: int, cfg: dict):
+    import json as _json
+    await _execute(
+        """INSERT INTO anti_nuke_config (guild_id, enabled, punishment, whitelist, thresholds)
+           VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT(guild_id) DO UPDATE SET
+             enabled    = excluded.enabled,
+             punishment = excluded.punishment,
+             whitelist  = excluded.whitelist,
+             thresholds = excluded.thresholds""",
+        (
+            guild_id,
+            int(cfg["enabled"]),
+            cfg["punishment"],
+            _json.dumps(cfg["whitelist"]),
+            _json.dumps(cfg["thresholds"]),
+        ),
     )

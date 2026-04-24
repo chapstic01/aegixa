@@ -12,7 +12,6 @@ Server owner and whitelisted users are always exempt.
 
 import asyncio
 import time
-import json
 from collections import defaultdict, deque
 
 import discord
@@ -60,45 +59,11 @@ _ACTION_LABELS = {
 # ---------------------------------------------------------------------------
 
 async def _get_config(guild_id: int) -> dict:
-    """Return anti-nuke config for a guild, with defaults filled in."""
-    async with __import__("aiosqlite").connect(__import__("database").DB_PATH) as db_conn:
-        db_conn.row_factory = __import__("aiosqlite").Row
-        async with db_conn.execute(
-            "SELECT * FROM anti_nuke_config WHERE guild_id = ?", (guild_id,)
-        ) as cur:
-            row = await cur.fetchone()
-
-    if not row:
-        return {"enabled": False, "punishment": "kick", "whitelist": [], "thresholds": {}}
-
-    thresholds = json.loads(row["thresholds"] or "{}")
-    whitelist  = json.loads(row["whitelist"]  or "[]")
-    return {
-        "enabled":    bool(row["enabled"]),
-        "punishment": row["punishment"] or "kick",
-        "whitelist":  whitelist,
-        "thresholds": thresholds,
-    }
+    return await db.get_anti_nuke_config(guild_id)
 
 
 async def _save_config(guild_id: int, cfg: dict):
-    async with __import__("aiosqlite").connect(__import__("database").DB_PATH) as db_conn:
-        await db_conn.execute("""
-            INSERT INTO anti_nuke_config (guild_id, enabled, punishment, whitelist, thresholds)
-            VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(guild_id) DO UPDATE SET
-              enabled    = excluded.enabled,
-              punishment = excluded.punishment,
-              whitelist  = excluded.whitelist,
-              thresholds = excluded.thresholds
-        """, (
-            guild_id,
-            int(cfg["enabled"]),
-            cfg["punishment"],
-            json.dumps(cfg["whitelist"]),
-            json.dumps(cfg["thresholds"]),
-        ))
-        await db_conn.commit()
+    await db.set_anti_nuke_config(guild_id, cfg)
 
 
 def _resolve_threshold(cfg: dict, action: str) -> tuple[int, int]:

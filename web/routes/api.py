@@ -346,6 +346,21 @@ def get_channels(guild_id):
     ])
 
 
+@api.get("/guild/<int:guild_id>/categories")
+@login_required
+def get_categories(guild_id):
+    if not _check_guild_access(guild_id):
+        return jsonify({"error": "Forbidden"}), 403
+    bot = current_app.bot
+    guild = bot.get_guild(guild_id)
+    if not guild:
+        return jsonify([])
+    return jsonify([
+        {"id": str(cat.id), "name": cat.name}
+        for cat in sorted(guild.categories, key=lambda c: c.position)
+    ])
+
+
 @api.get("/guild/<int:guild_id>/roles_list")
 @login_required
 def get_roles(guild_id):
@@ -423,17 +438,32 @@ def do_mod_action(guild_id):
             secs = parse_duration(duration) or 600
             secs = min(secs, 2419200)
             until = discord.utils.utcnow() + timedelta(seconds=secs)
-            await member.timeout(until, reason=f"[Dashboard] {reason}")
+            try:
+                await member.timeout(until, reason=f"[Dashboard] {reason}")
+            except discord.Forbidden:
+                return {"error": f"Missing permission to mute {member} (check role hierarchy)"}
+            except discord.HTTPException as e:
+                return {"error": f"Discord error: {e}"}
             await db.log_mod_action(guild_id, "mute", moderator_id, member.id, reason, f"duration:{secs}s")
             return {"ok": True, "message": f"Muted {member} for {format_duration(secs)}"}
 
         elif action == "kick":
-            await member.kick(reason=f"[Dashboard] {reason}")
+            try:
+                await member.kick(reason=f"[Dashboard] {reason}")
+            except discord.Forbidden:
+                return {"error": f"Missing permission to kick {member} (check role hierarchy)"}
+            except discord.HTTPException as e:
+                return {"error": f"Discord error: {e}"}
             await db.log_mod_action(guild_id, "kick", moderator_id, member.id, reason)
             return {"ok": True, "message": f"Kicked {member}"}
 
         elif action == "ban":
-            await guild.ban(member, reason=f"[Dashboard] {reason}", delete_message_days=0)
+            try:
+                await guild.ban(member, reason=f"[Dashboard] {reason}", delete_message_days=0)
+            except discord.Forbidden:
+                return {"error": f"Missing permission to ban {member} (check role hierarchy)"}
+            except discord.HTTPException as e:
+                return {"error": f"Discord error: {e}"}
             await db.log_mod_action(guild_id, "ban", moderator_id, member.id, reason)
             return {"ok": True, "message": f"Banned {member}"}
 
@@ -441,7 +471,12 @@ def do_mod_action(guild_id):
             secs = parse_duration(duration) or 86400
             expires_at = datetime.now(timezone.utc) + timedelta(seconds=secs)
             expires_str = expires_at.strftime("%Y-%m-%d %H:%M:%S")
-            await guild.ban(member, reason=f"[Dashboard Temp-ban] {reason}", delete_message_days=0)
+            try:
+                await guild.ban(member, reason=f"[Dashboard Temp-ban] {reason}", delete_message_days=0)
+            except discord.Forbidden:
+                return {"error": f"Missing permission to ban {member} (check role hierarchy)"}
+            except discord.HTTPException as e:
+                return {"error": f"Discord error: {e}"}
             await db.add_temp_ban(guild_id, member.id, moderator_id, reason, expires_str)
             await db.log_mod_action(guild_id, "tempban", moderator_id, member.id, reason, f"duration:{secs}s")
             return {"ok": True, "message": f"Temp-banned {member} for {format_duration(secs)}"}
@@ -498,7 +533,10 @@ def save_settings(guild_id):
     allowed = {"auto_ban_threshold", "rate_limit_count", "rate_limit_seconds", "caps_percent", "caps_min_length"}
     for field, value in data.items():
         if field in allowed:
-            run_async(db.set_guild_setting(guild_id, field, int(value)))
+            try:
+                run_async(db.set_guild_setting(guild_id, field, int(value)))
+            except (ValueError, TypeError):
+                return jsonify({"error": f"Invalid value for {field}: expected integer"}), 400
     return jsonify({"ok": True})
 
 
@@ -673,6 +711,29 @@ def save_starboard(guild_id):
         kwargs["enabled"] = 1 if data["enabled"] else 0
     run_async(db.set_starboard_config(guild_id, **kwargs))
     return jsonify({"ok": True})
+
+
+# ---------------------------------------------------------------------------
+# Sticky messages
+# ---------------------------------------------------------------------------
+
+@api.get("/guild/<int:guild_id>/stickies")
+@login_required
+def get_stickies(guild_id):
+    if not _check_guild_access(guild_id):
+        return jsonify({"error": "Forbidden"}), 403
+    bot = current_app.bot
+    guild = bot.get_guild(guild_id)
+    stickies = run_async(db.get_all_stickies(guild_id))
+    result = []
+    for s in stickies:
+        ch = guild.get_channel(s["channel_id"]) if guild else None
+        result.append({
+            "channel_id": str(s["channel_id"]),
+            "channel_name": f"#{ch.name}" if ch else f"#{s['channel_id']}",
+            "content": s["content"][:80] + ("…" if len(s["content"]) > 80 else ""),
+        })
+    return jsonify(result)
 
 
 # ---------------------------------------------------------------------------

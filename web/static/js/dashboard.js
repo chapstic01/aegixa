@@ -3,6 +3,7 @@
 const API = `/api/guild/${GUILD_ID}`;
 let channelOptions = [];
 let roleOptions = [];
+let categoryOptions = [];
 
 // ---------------------------------------------------------------------------
 // Utility
@@ -23,6 +24,13 @@ async function apiFetch(path, opts = {}) {
     ...opts,
   });
   return res.json();
+}
+
+function categorySelect(name, selectedId = '') {
+  const opts = categoryOptions.map(c =>
+    `<option value="${c.id}" ${c.id === selectedId ? 'selected' : ''}>${c.name}</option>`
+  ).join('');
+  return `<select name="${name}" class="input">\n<option value="">— None —</option>\n${opts}</select>`;
 }
 
 function channelSelect(name, selectedId = '') {
@@ -77,12 +85,14 @@ const tabLoaders = {
 // ---------------------------------------------------------------------------
 
 async function init() {
-  const [channels, roles] = await Promise.all([
+  const [channels, roles, cats] = await Promise.all([
     apiFetch(`${API}/channels`),
     apiFetch(`${API}/roles_list`),
+    apiFetch(`${API}/categories`),
   ]);
   channelOptions = channels;
   roleOptions = roles;
+  categoryOptions = cats;
   loadModeration();
 }
 
@@ -416,7 +426,7 @@ async function doModAction() {
   const result   = document.getElementById('mod-result');
 
   if (!member) return toast('Enter a member username or ID.', 'error');
-  if (['ban', 'tempban', 'kick'].includes(action)) {
+  if (['ban', 'tempban', 'kick', 'mute'].includes(action)) {
     if (!confirm(`Are you sure you want to ${action} this user? This cannot be undone.`)) return;
   }
 
@@ -511,7 +521,18 @@ async function deleteRR(messageId, emoji) {
 
 async function loadSticky() {
   const list = document.getElementById('sticky-list');
-  list.innerHTML = '<p class="text-muted">Sticky messages are managed via <code>/sticky set</code> and <code>/sticky clear</code> in Discord. Check each channel to see active stickies.</p>';
+  const stickies = await apiFetch(`${API}/stickies`);
+  if (!stickies.length) {
+    list.innerHTML = '<p class="text-muted">No active sticky messages. Use <code>/sticky set</code> in Discord to create one.</p>';
+    return;
+  }
+  list.innerHTML = stickies.map(s => `
+    <div class="toggle-item">
+      <div>
+        <span class="toggle-label">${s.channel_name}</span>
+        <div class="text-muted small">${s.content}</div>
+      </div>
+    </div>`).join('');
 }
 
 // ---------------------------------------------------------------------------
@@ -590,6 +611,10 @@ async function loadTickets() {
       ${roleSelect('ticket-support-role', cfg.support_role_id || '')}
     </div>
     <div class="form-group">
+      <label class="form-label">Ticket Category</label>
+      ${categorySelect('ticket-category', cfg.category_id || '')}
+    </div>
+    <div class="form-group">
       <label class="form-label">Transcript Log Channel</label>
       ${channelSelect('ticket-log-channel', cfg.log_channel_id || '')}
     </div>
@@ -618,6 +643,7 @@ async function loadTickets() {
 async function saveTickets() {
   const body = {
     support_role_id: document.getElementById('ticket-support-role')?.value || null,
+    category_id: document.querySelector('[name="ticket-category"]')?.value || null,
     log_channel_id: document.querySelector('[name="ticket-log-channel"]')?.value || null,
     enabled: document.getElementById('ticket-enabled')?.checked || false,
   };

@@ -3,12 +3,31 @@ Aegixa bot class — sets up intents, loads all cogs, syncs slash commands.
 """
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 import database as db
 import logging
 import os
 
 log = logging.getLogger(__name__)
+
+
+class AegixaCommandTree(app_commands.CommandTree):
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if not interaction.guild_id or interaction.command is None:
+            return True
+        enabled = await db.get_command_enabled(interaction.guild_id, interaction.command.name)
+        if not enabled:
+            await interaction.response.send_message(
+                embed=discord.Embed(
+                    description=":x: This command has been disabled by server administrators.",
+                    color=0xED4245,
+                ),
+                ephemeral=True,
+            )
+            return False
+        return True
+
 
 COGS = [
     "cogs.automod",
@@ -55,6 +74,7 @@ class Aegixa(commands.Bot):
             command_prefix=commands.when_mentioned,
             intents=intents,
             help_command=None,
+            tree_cls=AegixaCommandTree,
         )
 
     async def setup_hook(self):
