@@ -298,7 +298,7 @@ nav.links a:hover{color:var(--gold);background:rgba(220,38,38,.07)}
 .section-header .section-sub{margin:0 auto}
 
 /* ─── Pricing ───────────────────────────────────────────────────────────────── */
-.pricing-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;max-width:760px;margin:0 auto}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;max-width:1040px;margin:0 auto}
 .price-card{
   background:var(--bg2);border:1px solid var(--border);
   border-radius:var(--radius-lg);padding:2rem;
@@ -308,6 +308,17 @@ nav.links a:hover{color:var(--gold);background:rgba(220,38,38,.07)}
 .price-card.featured::before{
   content:'';position:absolute;top:0;left:0;right:0;height:3px;
   background:linear-gradient(90deg,var(--gold),var(--orange));
+}
+.price-card.best-value{border-color:rgba(220,38,38,.5);background:var(--bg3)}
+.price-card.best-value::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--orange),var(--gold));
+}
+.price-save{
+  display:inline-block;background:rgba(87,242,135,.12);
+  color:#57f287;border:1px solid rgba(87,242,135,.25);
+  font-size:.72rem;font-weight:700;padding:.15rem .55rem;
+  border-radius:var(--radius-xl);margin-left:.5rem;vertical-align:middle;
 }
 .price-badge{
   display:inline-flex;align-items:center;gap:.35rem;
@@ -417,6 +428,9 @@ footer{
 .delay-5{transition-delay:.5s}.delay-6{transition-delay:.6s}
 
 /* ─── Responsive ────────────────────────────────────────────────────────────── */
+@media(max-width:1050px){
+  .pricing-grid{grid-template-columns:1fr 1fr}
+}
 @media(max-width:900px){
   .features-grid{grid-template-columns:1fr 1fr}
   .checklist-grid{grid-template-columns:1fr 1fr}
@@ -435,6 +449,7 @@ footer{
   .stat-item:last-child{border-bottom:none}
   .stats-inner{flex-direction:column}
   .pricing-grid{grid-template-columns:1fr}
+  .price-card.best-value::before{display:none}
   .footer-inner{grid-template-columns:1fr}
   .footer-bottom{flex-direction:column;text-align:center}
   .checklist-grid{grid-template-columns:1fr 1fr}
@@ -666,8 +681,49 @@ footer{
         </ul>
         <a class="btn btn-ghost price-cta" href="{{ invite_url }}" target="_blank" rel="noopener">Add Aegixa Free</a>
       </div>
-      <!-- Premium -->
-      <div class="price-card featured animate delay-2">
+      <!-- 6-Month -->
+      <div class="price-card best-value animate delay-2">
+        <div class="price-badge">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          BEST VALUE
+        </div>
+        <div class="price-name">Premium 6-Month <span class="price-save">Save ~16%</span></div>
+        <div class="price-amount">{{ premium_price_6m }}<span>/6 months</span></div>
+        <div class="price-desc">Six months of full Premium for less.</div>
+        <ul class="price-list">
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Everything in Free
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            XP / Levels &amp; Voice XP
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Level roles &amp; leaderboard
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Phishing link detection
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Member verification gate
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Priority support
+          </li>
+          <li>
+            <svg class="check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            All future premium features
+          </li>
+        </ul>
+        <a class="btn btn-primary price-cta" href="{{ premium_url_6m }}" target="_blank" rel="noopener">Get 6-Month Plan</a>
+      </div>
+      <!-- Monthly Premium -->
+      <div class="price-card featured animate delay-3">
         <div class="price-badge">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           PREMIUM

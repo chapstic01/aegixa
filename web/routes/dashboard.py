@@ -14,7 +14,9 @@ INVITE_URL = os.getenv(
     "BOT_INVITE_URL",
     f"https://discord.com/oauth2/authorize?client_id={_client_id}&permissions=8&scope=bot%20applications.commands",
 )
-PREMIUM_PRICE = os.getenv("PREMIUM_PRICE", "2.99")
+PREMIUM_PRICE    = os.getenv("PREMIUM_PRICE",    "£2.99")
+PREMIUM_PRICE_6M = os.getenv("PREMIUM_PRICE_6M", "£14.99")
+PREMIUM_URL_6M   = os.getenv("PREMIUM_URL_6M",   PREMIUM_URL)
 
 
 @dashboard.get("/")
@@ -26,8 +28,10 @@ def index():
         guild_count=guild_count,
         invite_url=INVITE_URL,
         premium_url=PREMIUM_URL,
+        premium_url_6m=PREMIUM_URL_6M,
         support_server=SUPPORT_SERVER,
         premium_price=PREMIUM_PRICE,
+        premium_price_6m=PREMIUM_PRICE_6M,
     )
 
 
