@@ -785,9 +785,94 @@ async function cancelScheduled(id) {
 
 // Register new tab loaders
 Object.assign(tabLoaders, {
-  joinleave:  loadJoinLeave,
-  tickets:    loadTickets,
-  starboard:  loadStarboard,
-  customcmds: loadCustomCmds,
-  schedule:   loadSchedule,
+  joinleave:    loadJoinLeave,
+  tickets:      loadTickets,
+  starboard:    loadStarboard,
+  customcmds:   loadCustomCmds,
+  schedule:     loadSchedule,
+  systemcheck:  loadSystemCheck,
 });
+
+// ---------------------------------------------------------------------------
+// SYSTEM CHECK TAB (owner only)
+// ---------------------------------------------------------------------------
+
+const _CHECK_ICONS = {
+  pass: { icon: '✅', css: 'color:#57F287' },
+  warn: { icon: '⚠️', css: 'color:#FEE75C' },
+  fail: { icon: '❌', css: 'color:#ED4245' },
+  info: { icon: 'ℹ️', css: 'color:#a0a8b8' },
+};
+
+function _renderChecks(data) {
+  const results = document.getElementById('systemcheck-results');
+  const ts = document.getElementById('systemcheck-timestamp');
+  ts.style.display = '';
+  ts.textContent = `Last run: ${new Date(data.timestamp).toLocaleString()} · ${data.guild_name}`;
+
+  // Group by category
+  const grouped = {};
+  for (const c of data.checks) {
+    (grouped[c.category] ??= []).push(c);
+  }
+
+  const passCounts = {};
+  for (const [cat, items] of Object.entries(grouped)) {
+    passCounts[cat] = { pass: 0, warn: 0, fail: 0, info: 0 };
+    for (const i of items) passCounts[cat][i.status]++;
+  }
+
+  results.innerHTML = Object.entries(grouped).map(([cat, items]) => {
+    const pc = passCounts[cat];
+    const catStatus = pc.fail > 0 ? 'fail' : pc.warn > 0 ? 'warn' : pc.info === items.length ? 'info' : 'pass';
+    const catIcon = _CHECK_ICONS[catStatus].icon;
+    const rows = items.map(c => {
+      const { icon, css } = _CHECK_ICONS[c.status];
+      return `<tr>
+        <td style="width:28px;text-align:center;padding:.35rem .5rem;">${icon}</td>
+        <td style="padding:.35rem .5rem;font-weight:500;">${c.name}</td>
+        <td style="padding:.35rem .5rem;color:var(--text3);font-size:.85em;">${c.detail}</td>
+      </tr>`;
+    }).join('');
+
+    return `<div style="margin-bottom:1.25rem;">
+      <div style="font-weight:600;font-size:.8em;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:.4rem;display:flex;align-items:center;gap:.4rem;">
+        <span>${catIcon}</span><span>${cat}</span>
+        <span style="margin-left:auto;font-weight:400;font-size:.9em;">
+          ${pc.pass > 0 ? `<span style="color:#57F287">${pc.pass} pass</span>` : ''}
+          ${pc.warn > 0 ? ` <span style="color:#FEE75C">${pc.warn} warn</span>` : ''}
+          ${pc.fail > 0 ? ` <span style="color:#ED4245">${pc.fail} fail</span>` : ''}
+        </span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;background:var(--bg2);border-radius:8px;overflow:hidden;">
+        ${rows}
+      </table>
+    </div>`;
+  }).join('');
+}
+
+async function loadSystemCheck() {
+  // Only run on demand via button — don't auto-run on tab focus/poll
+}
+
+async function runChecks() {
+  const btn = document.getElementById('run-checks-btn');
+  const results = document.getElementById('systemcheck-results');
+  btn.disabled = true;
+  btn.textContent = 'Running…';
+  results.innerHTML = '<div class="spinner"></div>';
+
+  try {
+    const data = await apiFetch(`${API}/systemcheck`);
+    if (data.error) {
+      results.innerHTML = `<p style="color:#ED4245">${data.error}</p>`;
+    } else {
+      _renderChecks(data);
+    }
+  } catch (e) {
+    results.innerHTML = `<p style="color:#ED4245">Failed to run checks: ${e.message}</p>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Run Checks';
+  }
+}
