@@ -1,8 +1,10 @@
 """
 Automod cog — all content filters with per-filter punishments.
-Filters: spam, word, image, sticker, external_emoji, link, invite, caps, rate_limit
+Filters: spam, word, image, sticker, external_emoji, link, invite, caps,
+         rate_limit, mentions, zalgo, repeated_chars, emoji_spam, phishing
 """
 
+import unicodedata
 import discord
 from discord.ext import commands
 import database as db
@@ -25,21 +27,61 @@ import logging
 
 log = logging.getLogger(__name__)
 
-DISCORD_INVITE_RE = re.compile(r"(discord\.gg|discord\.com/invite|discordapp\.com/invite)/\S+", re.IGNORECASE)
+DISCORD_INVITE_RE  = re.compile(r"(discord\.gg|discord\.com/invite|discordapp\.com/invite)/\S+", re.IGNORECASE)
+REPEATED_CHARS_RE  = re.compile(r"(.)\1{8,}", re.UNICODE)
+CUSTOM_EMOJI_RE    = re.compile(r"<a?:\w+:\d+>")
+EMOJI_SPAM_THRESHOLD = 8  # default; configurable via guild_settings in future
 
-FILTER_SPAM = "spam"
-FILTER_WORD = "word"
-FILTER_IMAGE = "image"
-FILTER_STICKER = "sticker"
+FILTER_SPAM           = "spam"
+FILTER_WORD           = "word"
+FILTER_IMAGE          = "image"
+FILTER_STICKER        = "sticker"
 FILTER_EXTERNAL_EMOJI = "external_emoji"
-FILTER_LINK = "link"
-FILTER_MENTIONS = "mentions"
-MENTION_THRESHOLD = 5  # configurable via spam filter, this is the dedicated threshold
+FILTER_LINK           = "link"
+FILTER_MENTIONS       = "mentions"
+FILTER_ZALGO          = "zalgo"
+FILTER_REPEATED       = "repeated_chars"
+FILTER_EMOJI_SPAM     = "emoji_spam"
+MENTION_THRESHOLD     = 5
+
+# Alert deduplication window (seconds): max one alert per guild+filter per window
+ALERT_DEDUP_WINDOW = 30
+
+
+def _is_zalgo(text: str) -> bool:
+    """Detect zalgo / combining-mark spam."""
+    if not text:
+        return False
+    combining = sum(1 for c in text if unicodedata.category(c) == "Mn")
+    letters   = sum(1 for c in text if c.isalpha())
+    if letters < 5:
+        return False
+    return combining >= max(5, letters * 0.4)
+
+
+def _has_repeated_chars(text: str) -> bool:
+    """Detect 9+ consecutive identical characters: 'aaaaaaaaaa'."""
+    return bool(REPEATED_CHARS_RE.search(text))
+
+
+def _count_emoji(message: discord.Message) -> int:
+    """Count total emoji (custom + Unicode) in a message."""
+    text = message.content or ""
+    custom = len(CUSTOM_EMOJI_RE.findall(text))
+    unicode_em = sum(
+        1 for c in text
+        if "\U0001F300" <= c <= "\U0001FAFF"
+        or "\U00002600" <= c <= "\U000027BF"
+        or "\U0001F000" <= c <= "\U0001F02F"
+    )
+    return custom + unicode_em
 
 
 class Automod(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        # Per-(guild, filter) last-alert timestamp for deduplication
+        self._alert_cooldown: dict[tuple[int, str], float] = {}
         # In-memory rate limit tracker: {guild_id: {user_id: [timestamps]}}
         self._rate_cache: dict[int, dict[int, list[float]]] = defaultdict(lambda: defaultdict(list))
 
@@ -69,6 +111,13 @@ class Automod(commands.Cog):
         message: discord.Message,
         reason: str,
     ):
+        # Deduplication: skip if same guild+filter alerted recently
+        key = (guild.id, filter_name)
+        now = time.monotonic()
+        if now - self._alert_cooldown.get(key, 0) < ALERT_DEDUP_WINDOW:
+            return
+        self._alert_cooldown[key] = now
+
         channel = await self._get_alert_channel(guild)
         if not channel:
             return
@@ -89,7 +138,6 @@ class Automod(commands.Cog):
 
         await channel.send(content=role_mentions or None, embed=embed)
 
-        # Log to spam log channel
         spam_ch_id = await db.get_log_channel(guild.id, "spam")
         if spam_ch_id and spam_ch_id != channel.id:
             spam_ch = guild.get_channel(spam_ch_id)
@@ -104,11 +152,9 @@ class Automod(commands.Cog):
         reason: str,
     ):
         member = message.author
-        guild = message.guild
+        guild  = message.guild
         if not isinstance(member, discord.Member):
             return
-
-        # Skip bots and admins
         if member.bot or member.guild_permissions.administrator:
             return
 
@@ -159,11 +205,21 @@ class Automod(commands.Cog):
         excluded = await db.get_excluded_channels(message.guild.id)
         return message.channel.id in excluded
 
+    async def _is_exempt(self, message: discord.Message) -> bool:
+        """Return True if the message author holds an automod-exempt role."""
+        member = message.author
+        if not isinstance(member, discord.Member):
+            return False
+        exempt_ids = await db.get_automod_exempt_roles(message.guild.id)
+        if not exempt_ids:
+            return False
+        return any(r.id in exempt_ids for r in member.roles)
+
     async def _feature_enabled(self, guild_id: int) -> bool:
         return await db.get_feature(guild_id, "automod")
 
     # -----------------------------------------------------------------------
-    # Main listener
+    # Main listeners
     # -----------------------------------------------------------------------
 
     @commands.Cog.listener()
@@ -174,56 +230,47 @@ class Automod(commands.Cog):
             return
         if not await self._feature_enabled(message.guild.id):
             return
-
         await self._run_filters(message)
 
     @commands.Cog.listener()
     async def on_message_edit(self, before: discord.Message, after: discord.Message):
         if not after.guild:
             return
+        if before.content == after.content:
+            return
         if await self._is_excluded(after):
             return
         if not await self._feature_enabled(after.guild.id):
             return
-        # Only recheck word filter on edits
-        f = await db.get_filter(after.guild.id, FILTER_WORD)
-        if f["enabled"]:
-            words = await db.get_banned_words(after.guild.id)
-            matched = contains_banned_word(after.content, words)
-            if matched:
-                try:
-                    await after.delete()
-                except discord.HTTPException:
-                    pass
-                reason = f"Edited message contained banned word: `{matched}`"
-                await self._send_alert(after.guild, "Word", after, reason)
-                await self._apply_punishment(after, f["punishment"], FILTER_WORD, reason)
+        # Run all filters on edited messages (is_edit=True skips rate-limit counting)
+        await self._run_filters(after, is_edit=True)
 
     # -----------------------------------------------------------------------
     # Filter runner
     # -----------------------------------------------------------------------
 
-    async def _run_filters(self, message: discord.Message):
-        guild = message.guild
+    async def _run_filters(self, message: discord.Message, *, is_edit: bool = False):
+        guild  = message.guild
         member = message.author
 
-        # Skip bots
         if member.bot:
             return
 
-        # Skip admins and staff for all filters
+        # Skip admins and staff
         if isinstance(member, discord.Member) and member.guild_permissions.administrator:
+            return
+
+        # Skip exempt roles
+        if await self._is_exempt(message):
             return
 
         # ---- Spam filter (links + mass mentions) ----
         f_spam = await db.get_filter(guild.id, FILTER_SPAM)
         if f_spam["enabled"]:
-            triggered = False
-            reason = ""
+            triggered, reason = False, ""
             if message_has_links(message):
-                triggered = True
-                reason = "Message contained a link."
-            elif mention_count(message) >= 5:
+                triggered, reason = True, "Message contained a link."
+            elif mention_count(message) >= MENTION_THRESHOLD:
                 triggered = True
                 reason = f"Message contained {mention_count(message)} user mentions."
             if triggered:
@@ -235,18 +282,17 @@ class Automod(commands.Cog):
                 await self._apply_punishment(message, f_spam["punishment"], FILTER_SPAM, reason)
                 return
 
-        # ---- Link filter (separate from spam — links only) ----
+        # ---- Link filter ----
         f_link = await db.get_filter(guild.id, FILTER_LINK)
-        if f_link["enabled"]:
-            if message_has_links(message):
-                try:
-                    await message.delete()
-                except discord.HTTPException:
-                    pass
-                reason = "Message contained a link."
-                await self._send_alert(guild, "Link", message, reason)
-                await self._apply_punishment(message, f_link["punishment"], FILTER_LINK, reason)
-                return
+        if f_link["enabled"] and message_has_links(message):
+            try:
+                await message.delete()
+            except discord.HTTPException:
+                pass
+            reason = "Message contained a link."
+            await self._send_alert(guild, "Link", message, reason)
+            await self._apply_punishment(message, f_link["punishment"], FILTER_LINK, reason)
+            return
 
         # ---- Word filter ----
         f_word = await db.get_filter(guild.id, FILTER_WORD)
@@ -266,63 +312,59 @@ class Automod(commands.Cog):
 
         # ---- Image / GIF block ----
         f_image = await db.get_filter(guild.id, FILTER_IMAGE)
-        if f_image["enabled"]:
-            if message_has_media(message):
-                try:
-                    await message.delete()
-                except discord.HTTPException:
-                    pass
-                reason = "Image/GIF uploads are blocked in this server."
-                await self._send_alert(guild, "Image", message, reason)
-                await self._apply_punishment(message, f_image["punishment"], FILTER_IMAGE, reason)
-                return
+        if f_image["enabled"] and message_has_media(message):
+            try:
+                await message.delete()
+            except discord.HTTPException:
+                pass
+            reason = "Image/GIF uploads are blocked in this server."
+            await self._send_alert(guild, "Image", message, reason)
+            await self._apply_punishment(message, f_image["punishment"], FILTER_IMAGE, reason)
+            return
 
         # ---- Sticker block ----
         f_sticker = await db.get_filter(guild.id, FILTER_STICKER)
-        if f_sticker["enabled"]:
-            if message_has_sticker(message):
-                try:
-                    await message.delete()
-                except discord.HTTPException:
-                    pass
-                reason = "Sticker messages are not allowed."
-                await self._send_alert(guild, "Sticker", message, reason)
-                await self._apply_punishment(message, f_sticker["punishment"], FILTER_STICKER, reason)
-                return
+        if f_sticker["enabled"] and message_has_sticker(message):
+            try:
+                await message.delete()
+            except discord.HTTPException:
+                pass
+            reason = "Sticker messages are not allowed."
+            await self._send_alert(guild, "Sticker", message, reason)
+            await self._apply_punishment(message, f_sticker["punishment"], FILTER_STICKER, reason)
+            return
 
         # ---- External emoji block ----
         f_emoji = await db.get_filter(guild.id, FILTER_EXTERNAL_EMOJI)
-        if f_emoji["enabled"]:
-            if message_has_external_emoji(message):
-                try:
-                    await message.delete()
-                except discord.HTTPException:
-                    pass
-                reason = "External server emojis are not allowed."
-                await self._send_alert(guild, "External Emoji", message, reason)
-                await self._apply_punishment(message, f_emoji["punishment"], FILTER_EXTERNAL_EMOJI, reason)
-                return
+        if f_emoji["enabled"] and message_has_external_emoji(message):
+            try:
+                await message.delete()
+            except discord.HTTPException:
+                pass
+            reason = "External server emojis are not allowed."
+            await self._send_alert(guild, "External Emoji", message, reason)
+            await self._apply_punishment(message, f_emoji["punishment"], FILTER_EXTERNAL_EMOJI, reason)
+            return
 
         # ---- Anti-invite filter ----
         f_invite = await db.get_filter(guild.id, "invite")
-        if f_invite["enabled"] and message.content:
-            if DISCORD_INVITE_RE.search(message.content):
-                try:
-                    await message.delete()
-                except discord.HTTPException:
-                    pass
-                reason = "Discord invite links are not allowed."
-                await self._send_alert(guild, "Anti-Invite", message, reason)
-                await self._apply_punishment(message, f_invite["punishment"], "invite", reason)
-                return
+        if f_invite["enabled"] and message.content and DISCORD_INVITE_RE.search(message.content):
+            try:
+                await message.delete()
+            except discord.HTTPException:
+                pass
+            reason = "Discord invite links are not allowed."
+            await self._send_alert(guild, "Anti-Invite", message, reason)
+            await self._apply_punishment(message, f_invite["punishment"], "invite", reason)
+            return
 
         # ---- Caps filter ----
         f_caps = await db.get_filter(guild.id, "caps")
         if f_caps["enabled"] and message.content:
-            settings = await db.get_guild_settings(guild.id)
-            min_len = settings.get("caps_min_length", DEFAULT_CAPS_MIN_LENGTH)
-            caps_pct = settings.get("caps_percent", DEFAULT_CAPS_PERCENT)
-            letters = [c for c in message.content if c.isalpha()]
+            settings   = await db.get_guild_settings(guild.id)
+            min_len    = settings.get("caps_min_length", DEFAULT_CAPS_MIN_LENGTH)
+            caps_pct   = settings.get("caps_percent", DEFAULT_CAPS_PERCENT)
+            letters    = [c for c in message.content if c.isalpha()]
             if len(letters) >= min_len:
                 upper_ratio = sum(1 for c in letters if c.isupper()) / len(letters) * 100
                 if upper_ratio >= caps_pct:
@@ -335,8 +377,46 @@ class Automod(commands.Cog):
                     await self._apply_punishment(message, f_caps["punishment"], "caps", reason)
                     return
 
+        # ---- Zalgo / Unicode-combining spam ----
+        f_zalgo = await db.get_filter(guild.id, FILTER_ZALGO)
+        if f_zalgo["enabled"] and message.content and _is_zalgo(message.content):
+            try:
+                await message.delete()
+            except discord.HTTPException:
+                pass
+            reason = "Message contained zalgo / Unicode combining-mark spam."
+            await self._send_alert(guild, "Zalgo", message, reason)
+            await self._apply_punishment(message, f_zalgo["punishment"], FILTER_ZALGO, reason)
+            return
+
+        # ---- Repeated character spam ----
+        f_rep = await db.get_filter(guild.id, FILTER_REPEATED)
+        if f_rep["enabled"] and message.content and _has_repeated_chars(message.content):
+            try:
+                await message.delete()
+            except discord.HTTPException:
+                pass
+            reason = "Message contained repeated character spam (9+ consecutive identical characters)."
+            await self._send_alert(guild, "Repeated Chars", message, reason)
+            await self._apply_punishment(message, f_rep["punishment"], FILTER_REPEATED, reason)
+            return
+
+        # ---- Emoji spam ----
+        f_emoji_spam = await db.get_filter(guild.id, FILTER_EMOJI_SPAM)
+        if f_emoji_spam["enabled"]:
+            emoji_count = _count_emoji(message)
+            if emoji_count >= EMOJI_SPAM_THRESHOLD:
+                try:
+                    await message.delete()
+                except discord.HTTPException:
+                    pass
+                reason = f"Emoji spam: {emoji_count} emoji in one message (limit: {EMOJI_SPAM_THRESHOLD})."
+                await self._send_alert(guild, "Emoji Spam", message, reason)
+                await self._apply_punishment(message, f_emoji_spam["punishment"], FILTER_EMOJI_SPAM, reason)
+                return
+
         # ---- Phishing / scam detection (Premium) ----
-        if await db.is_premium(guild.id) and message.content:
+        if not is_edit and await db.is_premium(guild.id) and message.content:
             f_phish = await db.get_filter(guild.id, "phishing")
             if f_phish["enabled"]:
                 flagged, phish_reason = phishing_scan(message.content)
@@ -363,27 +443,26 @@ class Automod(commands.Cog):
                 await self._apply_punishment(message, f_mentions["punishment"], FILTER_MENTIONS, reason)
                 return
 
-        # ---- Rate limit filter ----
-        f_rate = await db.get_filter(guild.id, "rate_limit")
-        if f_rate["enabled"]:
-            settings = await db.get_guild_settings(guild.id)
-            limit_count = settings.get("rate_limit_count", DEFAULT_RATE_LIMIT_COUNT)
-            limit_secs = settings.get("rate_limit_seconds", DEFAULT_RATE_LIMIT_SECONDS)
-            now = time.monotonic()
-            user_times = self._rate_cache[guild.id][member.id]
-            # Purge old timestamps outside the window
-            user_times[:] = [t for t in user_times if now - t < limit_secs]
-            user_times.append(now)
-            if len(user_times) >= limit_count:
-                try:
-                    await message.delete()
-                except discord.HTTPException:
-                    pass
-                reason = f"Sending messages too fast ({limit_count} in {limit_secs}s)."
-                await self._send_alert(guild, "Rate Limit", message, reason)
-                await self._apply_punishment(message, f_rate["punishment"], "rate_limit", reason)
-                user_times.clear()
-                return
+        # ---- Rate limit filter (skip on edits — edits aren't new messages) ----
+        if not is_edit:
+            f_rate = await db.get_filter(guild.id, "rate_limit")
+            if f_rate["enabled"]:
+                settings    = await db.get_guild_settings(guild.id)
+                limit_count = settings.get("rate_limit_count", DEFAULT_RATE_LIMIT_COUNT)
+                limit_secs  = settings.get("rate_limit_seconds", DEFAULT_RATE_LIMIT_SECONDS)
+                now         = time.monotonic()
+                user_times  = self._rate_cache[guild.id][member.id]
+                user_times[:] = [t for t in user_times if now - t < limit_secs]
+                user_times.append(now)
+                if len(user_times) >= limit_count:
+                    try:
+                        await message.delete()
+                    except discord.HTTPException:
+                        pass
+                    reason = f"Sending messages too fast ({limit_count} in {limit_secs}s)."
+                    await self._send_alert(guild, "Rate Limit", message, reason)
+                    await self._apply_punishment(message, f_rate["punishment"], "rate_limit", reason)
+                    user_times.clear()
 
 
 async def setup(bot: commands.Bot):

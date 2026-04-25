@@ -30,6 +30,7 @@ _TRACKED = {
     discord.AuditLogAction.kick:           "kick",
     discord.AuditLogAction.channel_delete: "channel_delete",
     discord.AuditLogAction.role_delete:    "role_delete",
+    discord.AuditLogAction.role_create:    "role_create",
     discord.AuditLogAction.webhook_create: "webhook_create",
     discord.AuditLogAction.bot_add:        "bot_add",
 }
@@ -40,6 +41,7 @@ _DEFAULTS = {
     "kick":           (5,  10),
     "channel_delete": (2,  10),
     "role_delete":    (2,  10),
+    "role_create":    (4,  10),
     "webhook_create": (3,  10),
     "bot_add":        (1,  60),
 }
@@ -49,6 +51,7 @@ _ACTION_LABELS = {
     "kick":           "Mass Kick",
     "channel_delete": "Mass Channel Delete",
     "role_delete":    "Mass Role Delete",
+    "role_create":    "Mass Role Creation",
     "webhook_create": "Webhook Spam",
     "bot_add":        "Unauthorized Bot Add",
 }
@@ -170,6 +173,12 @@ class AntiNuke(commands.Cog):
 
         log.warning("AntiNuke triggered in %s (%s): %s by %s — %s",
                     guild.name, guild.id, label, user, result_line)
+
+        # Persist to security_events for audit trail
+        await db.log_security_event(
+            guild.id, f"antinuke_{action_key}",
+            user.id, f"{label} detected | {result_line}"
+        )
 
         # Build alert embed
         embed = discord.Embed(
@@ -323,6 +332,7 @@ class AntiNuke(commands.Cog):
         app_commands.Choice(name="Mass Kick",           value="kick"),
         app_commands.Choice(name="Mass Channel Delete", value="channel_delete"),
         app_commands.Choice(name="Mass Role Delete",    value="role_delete"),
+        app_commands.Choice(name="Mass Role Creation",  value="role_create"),
         app_commands.Choice(name="Webhook Spam",        value="webhook_create"),
         app_commands.Choice(name="Bot Add",             value="bot_add"),
     ])
@@ -352,6 +362,7 @@ class AntiNuke(commands.Cog):
         app_commands.Choice(name="Mass Kick",           value="kick"),
         app_commands.Choice(name="Mass Channel Delete", value="channel_delete"),
         app_commands.Choice(name="Mass Role Delete",    value="role_delete"),
+        app_commands.Choice(name="Mass Role Creation",  value="role_create"),
         app_commands.Choice(name="Webhook Spam",        value="webhook_create"),
         app_commands.Choice(name="Bot Add",             value="bot_add"),
     ])

@@ -58,6 +58,7 @@ COGS = [
     "cogs.scheduler",
     "cogs.owner_log",
     "cogs.anti_nuke",
+    "cogs.security",
 ]
 
 

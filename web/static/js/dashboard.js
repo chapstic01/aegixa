@@ -210,6 +210,9 @@ const FILTER_LABELS = {
   caps:           'Excessive Caps',
   rate_limit:     'Message Rate Limit',
   mentions:       'Mass Mentions (5+)',
+  zalgo:          'Zalgo / Unicode Spam',
+  repeated_chars: 'Repeated Character Spam',
+  emoji_spam:     'Emoji Spam (8+ emoji)',
   phishing:       '🔒 Phishing Detection (Premium)',
 };
 const PUNISHMENTS = ['none', 'warn', 'mute', 'kick', 'ban'];

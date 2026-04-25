@@ -58,6 +58,9 @@ FILTER_NAMES = [
     "caps",
     "rate_limit",
     "mentions",
+    "zalgo",
+    "repeated_chars",
+    "emoji_spam",
     "phishing",   # Premium — detected by utils/phishing.py
 ]
 

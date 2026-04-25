@@ -374,6 +374,27 @@ CREATE TABLE IF NOT EXISTS gumroad_subscriptions (
     days            INTEGER NOT NULL DEFAULT 30,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS security_events (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id    INTEGER NOT NULL,
+    event_type  TEXT NOT NULL,
+    user_id     INTEGER,
+    details     TEXT,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS honeypot_config (
+    guild_id    INTEGER PRIMARY KEY,
+    channel_id  INTEGER NOT NULL,
+    action      TEXT NOT NULL DEFAULT 'ban'
+);
+
+CREATE TABLE IF NOT EXISTS automod_exempt_roles (
+    guild_id    INTEGER NOT NULL,
+    role_id     INTEGER NOT NULL,
+    PRIMARY KEY (guild_id, role_id)
+);
 """
 
 
@@ -405,6 +426,7 @@ async def init_db():
             "ALTER TABLE ticket_config ADD COLUMN idle_close_hours INTEGER DEFAULT 0",
             "ALTER TABLE tickets ADD COLUMN ticket_type TEXT",
             "ALTER TABLE tickets ADD COLUMN last_message_at TIMESTAMP",
+            "ALTER TABLE guild_settings ADD COLUMN raid_lockdown_duration INTEGER DEFAULT 300",
         ]
         for stmt in _new_cols:
             try:
@@ -828,7 +850,7 @@ async def get_guild_settings(guild_id: int) -> dict:
 async def set_guild_setting(guild_id: int, field: str, value):
     allowed = {"auto_ban_threshold", "raid_mode", "rate_limit_count", "rate_limit_seconds",
                "caps_percent", "caps_min_length", "auto_detect_raids", "raid_join_threshold",
-               "raid_join_window", "raid_action", "min_account_age"}
+               "raid_join_window", "raid_action", "min_account_age", "raid_lockdown_duration"}
     if field not in allowed:
         raise ValueError(f"Unknown setting: {field}")
     await _execute(
@@ -1485,6 +1507,67 @@ async def get_gumroad_subscription(subscription_id: str) -> Optional[dict]:
     return await _fetchone(
         "SELECT * FROM gumroad_subscriptions WHERE subscription_id=?",
         (subscription_id,),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Security events
+# ---------------------------------------------------------------------------
+
+async def log_security_event(guild_id: int, event_type: str, user_id: Optional[int] = None, details: str = ""):
+    await _execute(
+        "INSERT INTO security_events (guild_id, event_type, user_id, details) VALUES (?,?,?,?)",
+        (guild_id, event_type, user_id, details),
+    )
+
+
+async def get_security_events(guild_id: int, limit: int = 50) -> list[dict]:
+    return await _fetchall(
+        "SELECT * FROM security_events WHERE guild_id=? ORDER BY created_at DESC LIMIT ?",
+        (guild_id, limit),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Honeypot config
+# ---------------------------------------------------------------------------
+
+async def set_honeypot(guild_id: int, channel_id: int, action: str = "ban"):
+    await _execute(
+        "INSERT INTO honeypot_config (guild_id, channel_id, action) VALUES (?,?,?) "
+        "ON CONFLICT(guild_id) DO UPDATE SET channel_id=excluded.channel_id, action=excluded.action",
+        (guild_id, channel_id, action),
+    )
+
+
+async def get_honeypot(guild_id: int) -> Optional[dict]:
+    return await _fetchone("SELECT * FROM honeypot_config WHERE guild_id=?", (guild_id,))
+
+
+async def clear_honeypot(guild_id: int):
+    await _execute("DELETE FROM honeypot_config WHERE guild_id=?", (guild_id,))
+
+
+# ---------------------------------------------------------------------------
+# Automod exempt roles
+# ---------------------------------------------------------------------------
+
+async def get_automod_exempt_roles(guild_id: int) -> set[int]:
+    rows = await _fetchall("SELECT role_id FROM automod_exempt_roles WHERE guild_id=?", (guild_id,))
+    return {r["role_id"] for r in rows}
+
+
+async def add_automod_exempt_role(guild_id: int, role_id: int):
+    await _execute(
+        "INSERT OR IGNORE INTO automod_exempt_roles (guild_id, role_id) VALUES (?,?)",
+        (guild_id, role_id),
+    )
+
+
+async def remove_automod_exempt_role(guild_id: int, role_id: int):
+    await _execute(
+        "DELETE FROM automod_exempt_roles WHERE guild_id=? AND role_id=?",
+        (guild_id, role_id),
     )
 
 

@@ -85,6 +85,10 @@ class RaidMode(commands.Cog):
         if len(dq) >= threshold:
             self._auto_locked[guild.id] = True
             asyncio.create_task(self._auto_lockdown(guild, settings))
+            asyncio.create_task(db.log_security_event(
+                guild.id, "raid_detected", None,
+                f"{len(dq)} joins in {window}s — auto-lockdown triggered"
+            ))
 
     async def _auto_lockdown(self, guild: discord.Guild, settings: dict):
         detect_embed = discord.Embed(
@@ -109,7 +113,9 @@ class RaidMode(commands.Cog):
         detect_embed.set_footer(text=guild.name)
         await send_guild_alert(guild, detect_embed)
 
-        await asyncio.sleep(300)  # auto-lift after 5 min
+        fresh_settings = await db.get_guild_settings(guild.id)
+        duration = fresh_settings.get("raid_lockdown_duration", 300)
+        await asyncio.sleep(duration)
         if self._auto_locked.get(guild.id):
             self._auto_locked[guild.id] = False
             self._joins[guild.id].clear()
