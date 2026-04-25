@@ -67,6 +67,8 @@ function roleSelect(id, selectedId = '') {
 // Tab switching
 // ---------------------------------------------------------------------------
 
+let _activeTab = 'moderation';
+
 document.querySelectorAll('.tab').forEach(btn => {
   btn.addEventListener('click', () => {
     const tab = btn.dataset.tab;
@@ -75,11 +77,23 @@ document.querySelectorAll('.tab').forEach(btn => {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
     btn.classList.add('active');
     document.getElementById(`tab-${tab}`)?.classList.remove('hidden');
+    _activeTab = tab;
     tabLoaders[tab]?.();
-    // Close sidebar drawer on mobile after selection
     if (typeof closeSidebar === 'function') closeSidebar();
   });
 });
+
+function _refreshActiveTab() {
+  tabLoaders[_activeTab]?.();
+}
+
+// Refresh when the browser tab regains focus (user alt-tabs back from Discord, etc.)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') _refreshActiveTab();
+});
+
+// Periodic background refresh every 30 s so settings stay in sync
+setInterval(_refreshActiveTab, 30_000);
 
 const tabLoaders = {
   logs:         loadLogs,
