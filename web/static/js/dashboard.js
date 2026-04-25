@@ -118,11 +118,17 @@ init();
 // LOGS
 // ---------------------------------------------------------------------------
 
-const LOG_TYPES = ['general','spam','member','edit','delete','voice','roles','channels'];
+const LOG_TYPES = ['general','spam','member','edit','delete','voice','roles','channels','modactions'];
 const LOG_LABELS = {
-  general: 'General / Commands', spam: 'Spam / Automod', member: 'Members (Join/Leave)',
-  edit: 'Message Edits', delete: 'Message Deletes', voice: 'Voice Activity',
-  roles: 'Role Changes', channels: 'Channel Updates',
+  general:    'General / Commands',
+  spam:       'Spam / Automod',
+  member:     'Members (Join / Leave / Screening)',
+  edit:       'Message Edits',
+  delete:     'Message Deletes',
+  voice:      'Voice Activity',
+  roles:      'Role Changes',
+  channels:   'Channel Updates',
+  modactions: 'Mod Actions (ban / kick / timeout / nick)',
 };
 
 async function loadLogs() {
