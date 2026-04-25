@@ -96,6 +96,9 @@
         <button class="sidebar-item tab" data-tab="console-link">
           <span class="si-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span> Console
         </button>
+        <button class="sidebar-item tab" data-tab="danger" style="color:#f87171;">
+          <span class="si-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span> Danger Zone
+        </button>
       </div>
       {% endif %}
 
@@ -334,6 +337,24 @@
         <div id="schedule-list"><div class="spinner"></div></div>
       </div>
     </div>
+
+    {% if is_bot_owner %}
+    <!-- DANGER ZONE TAB (bot owner only) -->
+    <div id="tab-danger" class="tab-content hidden">
+      <div class="card" style="border:1px solid #f87171;">
+        <h2 style="color:#f87171;">Danger Zone</h2>
+        <p class="text-muted">These actions are irreversible. Only visible to the bot owner.</p>
+        <hr style="border-color:#3f3f46;margin:1rem 0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+          <div>
+            <strong>Remove bot from this server</strong>
+            <p class="text-muted" style="margin:.25rem 0 0;">The bot will leave immediately. All settings are preserved if it is re-invited.</p>
+          </div>
+          <button class="btn" style="background:#dc2626;color:#fff;white-space:nowrap;" onclick="removeBot()">Remove Bot</button>
+        </div>
+      </div>
+    </div>
+    {% endif %}
 
   </div><!-- /.dash-main -->
 </div><!-- /.dash-layout -->

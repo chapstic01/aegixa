@@ -789,3 +789,18 @@ def cancel_scheduled(guild_id, msg_id):
         return jsonify({"error": "Forbidden"}), 403
     removed = run_async(db.delete_scheduled_message(msg_id, guild_id))
     return jsonify({"ok": removed})
+
+
+@api.post("/guild/<int:guild_id>/leave")
+@login_required
+def leave_guild(guild_id):
+    user_id = int(session["user"]["id"])
+    owner_id = int(os.getenv("BOT_OWNER_ID", "0"))
+    if user_id != owner_id:
+        return jsonify({"error": "Forbidden"}), 403
+    bot = current_app.bot
+    guild = bot.get_guild(guild_id)
+    if not guild:
+        return jsonify({"error": "Guild not found"}), 404
+    run_async(guild.leave())
+    return jsonify({"ok": True})

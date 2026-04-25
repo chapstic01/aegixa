@@ -9,13 +9,29 @@ let categoryOptions = [];
 // Utility
 // ---------------------------------------------------------------------------
 
+let _toastEl = null;
+let _toastTimer = null;
+
 function toast(msg, type = 'success') {
+  if (_toastEl) { clearTimeout(_toastTimer); _toastEl.remove(); }
   const el = document.createElement('div');
   el.className = `alert alert-${type}`;
   el.textContent = msg;
   el.style.cssText = 'position:fixed;top:70px;right:1rem;z-index:9999;max-width:360px;animation:fadeIn .2s';
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 3000);
+  _toastEl = el;
+  _toastTimer = setTimeout(() => { el.remove(); _toastEl = null; }, 3000);
+}
+
+async function removeBot() {
+  if (!confirm('Remove the bot from this server?\n\nIt will leave immediately. Settings are preserved if it is re-invited.')) return;
+  const res = await apiFetch(`${API}/leave`, { method: 'POST' });
+  if (res.ok) {
+    toast('Bot left the server.');
+    setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
+  } else {
+    toast(res.error || 'Failed to remove bot.', 'error');
+  }
 }
 
 async function apiFetch(path, opts = {}) {
