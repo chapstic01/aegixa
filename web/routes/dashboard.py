@@ -15,7 +15,7 @@ INVITE_URL = os.getenv(
     f"https://discord.com/oauth2/authorize?client_id={_client_id}&permissions=8&scope=bot%20applications.commands",
 )
 PREMIUM_PRICE    = os.getenv("PREMIUM_PRICE",    "£2.99")
-PREMIUM_PRICE_6M = os.getenv("PREMIUM_PRICE_6M", "£14.99")
+PREMIUM_PRICE_6M = os.getenv("PREMIUM_PRICE_6M", "£20.99")
 PREMIUM_URL_6M   = os.getenv("PREMIUM_URL_6M",   PREMIUM_URL)
 
 
