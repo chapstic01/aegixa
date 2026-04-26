@@ -34,6 +34,7 @@ _MOD_COMMANDS = frozenset({
     "ban", "unban", "kick", "mute", "unmute", "purge",
     "nick", "block", "unblock", "lock", "unlock", "threshold",
     "warn add", "warn remove",
+    "redeem", "givepremium",
 })
 
 

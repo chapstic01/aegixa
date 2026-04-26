@@ -1013,3 +1013,53 @@ def system_check(guild_id):
         "guild_name": guild.name,
         "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
     })
+
+
+# ---------------------------------------------------------------------------
+# Premium overview (bot owner only — all servers)
+# ---------------------------------------------------------------------------
+
+@api.get("/owner/premium")
+@login_required
+def owner_premium():
+    user_id = int(session["user"]["id"])
+    owner_id = int(os.getenv("BOT_OWNER_ID", "0"))
+    if user_id != owner_id:
+        return jsonify({"error": "Forbidden"}), 403
+
+    bot = current_app.bot
+    premium_rows = run_async(db.get_all_premium_guilds())
+    premium_map = {r["guild_id"]: r for r in premium_rows}
+
+    now = datetime.datetime.utcnow()
+    guilds = []
+    for guild in bot.guilds:
+        row = premium_map.get(guild.id)
+        if row:
+            expires_at = row["expires_at"]
+            active = bool(row["active"])
+            days_left = None
+            if expires_at:
+                try:
+                    exp_dt = datetime.datetime.fromisoformat(expires_at)
+                    days_left = max(0, (exp_dt - now).days)
+                except Exception:
+                    pass
+        else:
+            active = False
+            expires_at = None
+            days_left = None
+
+        guilds.append({
+            "id": str(guild.id),
+            "name": guild.name,
+            "member_count": guild.member_count or 0,
+            "premium": active,
+            "tier": row["tier"] if row else None,
+            "expires_at": expires_at,
+            "days_left": days_left,
+        })
+
+    guilds.sort(key=lambda g: (0 if g["premium"] else 1, g["name"].lower()))
+    premium_count = sum(1 for g in guilds if g["premium"])
+    return jsonify({"guilds": guilds, "total": len(guilds), "premium_count": premium_count})

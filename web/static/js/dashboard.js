@@ -785,13 +785,72 @@ async function cancelScheduled(id) {
 
 // Register new tab loaders
 Object.assign(tabLoaders, {
-  joinleave:    loadJoinLeave,
-  tickets:      loadTickets,
-  starboard:    loadStarboard,
-  customcmds:   loadCustomCmds,
-  schedule:     loadSchedule,
-  systemcheck:  loadSystemCheck,
+  joinleave:       loadJoinLeave,
+  tickets:         loadTickets,
+  starboard:       loadStarboard,
+  customcmds:      loadCustomCmds,
+  schedule:        loadSchedule,
+  'premium-status': loadPremiumStatus,
+  systemcheck:     loadSystemCheck,
 });
+
+// ---------------------------------------------------------------------------
+// PREMIUM STATUS TAB (owner only)
+// ---------------------------------------------------------------------------
+
+async function loadPremiumStatus() {
+  const list = document.getElementById('premium-list');
+  const summary = document.getElementById('premium-summary');
+  if (!list) return;
+  list.innerHTML = '<div class="spinner"></div>';
+
+  const data = await apiFetch('/api/owner/premium');
+  if (!data || data.error) {
+    list.innerHTML = '<p class="text-muted">Failed to load premium data.</p>';
+    return;
+  }
+
+  summary.textContent = `${data.premium_count} / ${data.total} server${data.total !== 1 ? 's' : ''} with premium`;
+
+  if (!data.guilds.length) {
+    list.innerHTML = '<p class="text-muted">No servers found.</p>';
+    return;
+  }
+
+  const rows = data.guilds.map(g => {
+    const badge = g.premium
+      ? `<span style="background:#1a3a2a;color:#57F287;border-radius:4px;padding:.15rem .5rem;font-size:.8em;font-weight:600;">⭐ Active</span>`
+      : `<span style="background:var(--bg3);color:var(--text3);border-radius:4px;padding:.15rem .5rem;font-size:.8em;">Free</span>`;
+    const expiry = g.premium
+      ? (g.days_left === null ? 'Lifetime' : `${g.days_left}d left`)
+      : '—';
+    const tier = g.tier ? g.tier.charAt(0).toUpperCase() + g.tier.slice(1) : '—';
+    return `<tr style="border-bottom:1px solid var(--bg3);">
+      <td style="padding:.5rem .75rem;font-weight:500;">${g.name}</td>
+      <td style="padding:.5rem .75rem;color:var(--text3);font-size:.88em;">${g.id}</td>
+      <td style="padding:.5rem .75rem;color:var(--text3);">${g.member_count.toLocaleString()}</td>
+      <td style="padding:.5rem .75rem;">${badge}</td>
+      <td style="padding:.5rem .75rem;color:var(--text3);">${tier}</td>
+      <td style="padding:.5rem .75rem;color:var(--text3);">${expiry}</td>
+    </tr>`;
+  }).join('');
+
+  list.innerHTML = `<div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="border-bottom:2px solid var(--bg3);font-size:.8em;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);">
+          <th style="padding:.4rem .75rem;text-align:left;">Server</th>
+          <th style="padding:.4rem .75rem;text-align:left;">ID</th>
+          <th style="padding:.4rem .75rem;text-align:left;">Members</th>
+          <th style="padding:.4rem .75rem;text-align:left;">Status</th>
+          <th style="padding:.4rem .75rem;text-align:left;">Tier</th>
+          <th style="padding:.4rem .75rem;text-align:left;">Expires</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
 
 // ---------------------------------------------------------------------------
 // SYSTEM CHECK TAB (owner only)

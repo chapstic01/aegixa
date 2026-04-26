@@ -46,25 +46,45 @@ DEFAULT_TIER = ("premium", 30)
 # Guild notification (runs in bot's asyncio loop)
 # ---------------------------------------------------------------------------
 
-async def _notify_guild_premium(bot, guild_id: int, days: int, tier: str, renewed: bool):
+async def _notify_guild_premium(
+    bot, guild_id: int, days: int, tier: str, renewed: bool,
+    sale_id: str = "unknown", buyer_email: str = "",
+):
     from utils.helpers import send_guild_alert
+    import os
     guild = bot.get_guild(guild_id)
-    if not guild:
-        return
     action = "Renewed" if renewed else "Activated"
-    embed = discord.Embed(
-        title=f"⭐ Premium {action}!",
-        description=(
-            f"**Aegixa Premium** has been {action.lower()} for **{guild.name}**.\n"
-            f"All premium features are now unlocked."
-        ),
+    guild_name = guild.name if guild else str(guild_id)
+
+    # In-server notification
+    if guild:
+        embed = discord.Embed(
+            title=f"⭐ Premium {action}!",
+            description=(
+                f"**Aegixa Premium** has been {action.lower()} for **{guild.name}**.\n"
+                f"All premium features are now unlocked."
+            ),
+            color=0xFEE75C,
+            timestamp=discord.utils.utcnow(),
+        )
+        embed.add_field(name="Duration added", value=f"{days} days", inline=True)
+        embed.add_field(name="Tier", value=tier.title(), inline=True)
+        embed.set_footer(text="Thank you for supporting Aegixa!")
+        await send_guild_alert(guild, embed)
+
+    # Owner DM notification
+    owner_embed = discord.Embed(
+        title=f"⭐ Premium {action} (Gumroad)",
+        description=f"**{guild_name}** (`{guild_id}`) — premium {action.lower()} via Gumroad.",
         color=0xFEE75C,
         timestamp=discord.utils.utcnow(),
     )
-    embed.add_field(name="Duration added", value=f"{days} days", inline=True)
-    embed.add_field(name="Tier", value=tier.title(), inline=True)
-    embed.set_footer(text="Thank you for supporting Aegixa!")
-    await send_guild_alert(guild, embed)
+    owner_embed.add_field(name="Duration", value=f"{days} days", inline=True)
+    owner_embed.add_field(name="Tier", value=tier.title(), inline=True)
+    owner_embed.add_field(name="Sale ID", value=sale_id, inline=True)
+    if buyer_email:
+        owner_embed.add_field(name="Buyer Email", value=buyer_email, inline=True)
+    bot.dispatch("owner_log", owner_embed)
 
 
 # ---------------------------------------------------------------------------
@@ -112,8 +132,12 @@ def gumroad_webhook():
             )
             future.result(timeout=10)
 
+            buyer_email = data.get("email", "")
             asyncio.run_coroutine_threadsafe(
-                _notify_guild_premium(bot, guild_id, renewal_days, renewal_tier, renewed=True),
+                _notify_guild_premium(
+                    bot, guild_id, renewal_days, renewal_tier,
+                    renewed=True, sale_id=sale_id, buyer_email=buyer_email,
+                ),
                 bot.loop,
             )
 
@@ -189,9 +213,12 @@ def gumroad_webhook():
         )
         future.result(timeout=10)
 
-    # Notify the guild in Discord
+    buyer_email = data.get("email", "")
     asyncio.run_coroutine_threadsafe(
-        _notify_guild_premium(bot, guild_id, days, tier, renewed=False),
+        _notify_guild_premium(
+            bot, guild_id, days, tier,
+            renewed=False, sale_id=sale_id, buyer_email=buyer_email,
+        ),
         bot.loop,
     )
 

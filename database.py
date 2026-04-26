@@ -1066,6 +1066,18 @@ async def redeem_license_key(guild_id: int, raw_key: str) -> tuple[bool, str]:
     return True, f"Premium activated for **{key['duration_days']} days**!"
 
 
+async def get_all_premium_guilds() -> list[dict]:
+    """Return all rows from premium_guilds with an `active` flag for dashboard display."""
+    rows = await _fetchall(
+        """SELECT guild_id, expires_at, tier,
+                  CASE WHEN expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP THEN 1 ELSE 0 END AS active
+           FROM premium_guilds
+           ORDER BY active DESC, expires_at DESC""",
+        (),
+    )
+    return [dict(r) for r in rows] if rows else []
+
+
 # ---------------------------------------------------------------------------
 # Verification config (stored in guilds table)
 # ---------------------------------------------------------------------------

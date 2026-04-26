@@ -611,6 +611,25 @@ class Admin(commands.Cog):
             )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
+        owner_embed = discord.Embed(
+            title="⭐ Premium Key Redeemed" if success else "❌ Premium Redemption Failed",
+            description=message,
+            color=COLOR_PREMIUM if success else 0xED4245,
+            timestamp=discord.utils.utcnow(),
+        )
+        owner_embed.add_field(
+            name="Server",
+            value=f"**{interaction.guild.name}** (`{interaction.guild_id}`)",
+            inline=True,
+        )
+        owner_embed.add_field(
+            name="By",
+            value=f"{interaction.user} (`{interaction.user.id}`)",
+            inline=True,
+        )
+        owner_embed.add_field(name="Key (first 8)", value=f"`{key[:8]}****`", inline=True)
+        self.bot.dispatch("owner_log", owner_embed)
+
     @app_commands.command(name="givepremium", description="Grant free premium to a server (owner only)")
     @app_commands.describe(days="Duration in days", guild_id="Target server ID (leave blank = this server)")
     async def givepremium(self, interaction: discord.Interaction, days: int, guild_id: str = None):
@@ -632,6 +651,16 @@ class Admin(commands.Cog):
             ephemeral=True,
         )
         log.info("Owner granted %d days premium to guild %s (%s)", days, name, target_id)
+
+        owner_embed = discord.Embed(
+            title="🎁 Premium Granted (Owner Command)",
+            description=f"**{name}** (`{target_id}`) was granted premium.",
+            color=COLOR_PREMIUM,
+            timestamp=discord.utils.utcnow(),
+        )
+        owner_embed.add_field(name="Duration", value=f"{days} days", inline=True)
+        owner_embed.add_field(name="Server", value=f"{name} (`{target_id}`)", inline=True)
+        self.bot.dispatch("owner_log", owner_embed)
 
     @app_commands.command(name="update", description="Compose and send a broadcast embed to all servers (owner only)")
     async def update(self, interaction: discord.Interaction):
