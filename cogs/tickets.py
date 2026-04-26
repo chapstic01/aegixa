@@ -701,7 +701,7 @@ class Tickets(commands.Cog):
             # Check if this ticket specifically is past threshold
             from datetime import datetime
             last = datetime.strptime(ticket["last_message_at"], "%Y-%m-%d %H:%M:%S")
-            elapsed = (datetime.utcnow() - last).total_seconds() / 3600
+            elapsed = (datetime.now(timezone.utc).replace(tzinfo=None) - last).total_seconds() / 3600
             if elapsed < hours:
                 continue
             channel = guild.get_channel(ticket["channel_id"])

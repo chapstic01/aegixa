@@ -536,6 +536,10 @@ class Admin(commands.Cog):
 
     @app_commands.command(name="premiumcode", description="Generate a verification code to activate Aegixa Premium at checkout")
     async def premiumcode(self, interaction: discord.Interaction):
+        if not interaction.guild:
+            return await interaction.response.send_message(
+                embed=error_embed("This command must be used inside a server."), ephemeral=True
+            )
         if not interaction.user.guild_permissions.manage_guild:
             return await interaction.response.send_message(
                 embed=error_embed("You need **Manage Server** permission to generate a premium code."),
@@ -562,6 +566,10 @@ class Admin(commands.Cog):
 
     @app_commands.command(name="premium", description="Check this server's premium status")
     async def premium(self, interaction: discord.Interaction):
+        if not interaction.guild:
+            return await interaction.response.send_message(
+                embed=error_embed("This command must be used inside a server."), ephemeral=True
+            )
         is_prem = await db.is_premium(interaction.guild_id)
         if is_prem:
             embed = discord.Embed(
@@ -593,6 +601,10 @@ class Admin(commands.Cog):
     @app_commands.command(name="redeem", description="Redeem a premium license key")
     @app_commands.describe(key="Your license key")
     async def redeem(self, interaction: discord.Interaction, key: str):
+        if not interaction.guild:
+            return await interaction.response.send_message(
+                embed=error_embed("This command must be used inside a server."), ephemeral=True
+            )
         success, message = await db.redeem_license_key(interaction.guild_id, key)
         embed = discord.Embed(
             title=":white_check_mark: License Redeemed" if success else ":x: Redemption Failed",
@@ -619,7 +631,7 @@ class Admin(commands.Cog):
         )
         owner_embed.add_field(
             name="Server",
-            value=f"**{interaction.guild.name}** (`{interaction.guild_id}`)",
+            value=f"**{interaction.guild.name if interaction.guild else 'DM'}** (`{interaction.guild_id}`)",
             inline=True,
         )
         owner_embed.add_field(
@@ -642,6 +654,10 @@ class Admin(commands.Cog):
         except ValueError:
             return await interaction.response.send_message(
                 embed=error_embed("Invalid guild ID."), ephemeral=True
+            )
+        if not target_id:
+            return await interaction.response.send_message(
+                embed=error_embed("Provide a `guild_id` when using this command in DMs."), ephemeral=True
             )
         await db.grant_premium(target_id, days)
         guild = self.bot.get_guild(target_id)

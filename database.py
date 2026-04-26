@@ -7,7 +7,7 @@ import aiosqlite
 import os
 import secrets
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 DB_PATH = os.getenv("DB_PATH", "aegixa.db")
@@ -1323,7 +1323,7 @@ async def set_ticket_config(guild_id: int, **kwargs):
 async def create_ticket(guild_id: int, channel_id: int, user_id: int, ticket_type: str = "Support") -> int:
     count_row = await _fetchone("SELECT COUNT(*) as n FROM tickets WHERE guild_id=?", (guild_id,))
     ticket_number = (count_row["n"] if count_row else 0) + 1
-    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     return await _execute(
         "INSERT INTO tickets (guild_id, channel_id, user_id, ticket_number, ticket_type, last_message_at) VALUES (?,?,?,?,?,?)",
         (guild_id, channel_id, user_id, ticket_number, ticket_type, now),
@@ -1351,7 +1351,7 @@ async def unclaim_ticket(channel_id: int):
 
 
 async def touch_ticket(channel_id: int):
-    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     await _execute("UPDATE tickets SET last_message_at=? WHERE channel_id=? AND closed=0", (now, channel_id))
 
 
