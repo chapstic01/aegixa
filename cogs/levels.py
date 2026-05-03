@@ -234,6 +234,22 @@ class LevelConfigGroup(app_commands.Group):
             ephemeral=True,
         )
 
+    @app_commands.command(name="message", description="Set a custom level-up announcement message")
+    @app_commands.describe(template="Message template. Placeholders: {mention} {user} {level} {server}")
+    @is_admin()
+    async def lc_message(self, interaction: discord.Interaction, template: str):
+        if not await _is_premium(interaction.guild_id):
+            return await interaction.response.send_message(
+                embed=error_embed("The XP/Levels system requires **Aegixa Premium**."), ephemeral=True
+            )
+        await db.set_xp_config(interaction.guild_id, levelup_message=template)
+        await interaction.response.send_message(
+            embed=success_embed(
+                f"Level-up message updated.\n\nPreview: `{template}`\n\nAvailable placeholders: `{{mention}}` `{{user}}` `{{level}}` `{{server}}`"
+            ),
+            ephemeral=True,
+        )
+
 
 # ---------------------------------------------------------------------------
 # Cog

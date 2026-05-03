@@ -177,6 +177,29 @@ class WarnGroup(app_commands.Group):
         else:
             await interaction.response.send_message(embed=error_embed(f"Warning `{warning_id}` not found."), ephemeral=True)
 
+    @app_commands.command(name="clear", description="Clear all warnings for a member")
+    @app_commands.describe(member="Username, display name, or mention")
+    @is_staff()
+    async def warn_clear(self, interaction: discord.Interaction, member: str):
+        await interaction.response.defer(ephemeral=True)
+        target = await resolve_member(interaction.guild, member)
+        if not target:
+            return await interaction.followup.send(embed=error_embed(f"Member `{member}` not found."), ephemeral=True)
+        count = await db.clear_warnings(interaction.guild_id, target.id)
+        if count == 0:
+            return await interaction.followup.send(embed=info_embed(f"{target.display_name} has no warnings to clear."), ephemeral=True)
+        await interaction.followup.send(
+            embed=success_embed(f"Cleared **{count}** warning(s) for {target.mention}."), ephemeral=True
+        )
+        embed = discord.Embed(title="🗑️ All Warnings Cleared", color=0x57F287, timestamp=discord.utils.utcnow())
+        embed.set_author(name=str(interaction.user), icon_url=interaction.user.display_avatar.url)
+        embed.add_field(name="Member", value=f"{target.mention} (`{target.id}`)", inline=True)
+        embed.add_field(name="Warnings Removed", value=str(count), inline=True)
+        embed.add_field(name="Moderator", value=interaction.user.mention, inline=True)
+        embed.add_field(name="Server", value=f"{interaction.guild.name} (`{interaction.guild_id}`)", inline=False)
+        await _send_modlog(interaction.client, interaction.guild, embed)
+        await db.log_mod_action(interaction.guild_id, "warn_clear", interaction.user.id, target.id, f"Cleared {count} warnings")
+
 
 class Moderation(commands.Cog):
     def __init__(self, bot: commands.Bot):

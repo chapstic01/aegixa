@@ -141,6 +141,8 @@ def scan_message(text: str) -> tuple[bool, str]:
     for url in extract_urls(text):
         if _is_phishing_url(url):
             return True, f"Phishing/scam URL detected: `{url[:80]}`"
+    if has_shorturl(text):
+        return True, "URL shortener detected (commonly used to mask phishing links)"
     text_lower = text.lower()
     for kw in PHISHING_KEYWORDS:
         if kw in text_lower:
